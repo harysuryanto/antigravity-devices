@@ -1,0 +1,15 @@
+{
+  "name": "antigravity-devices",
+  "private": true,
+  "scripts": {
+    "build": "node build/package.mjs",
+    "validate": "agy plugin validate --strict dist/plugin",
+    "install:local": "bun run build && bun run validate && agy plugin install dist/plugin"
+  },
+  "dependencies": {
+    "serve-emu": "0.1.0"
+  },
+  "devDependencies": {
+    "vite": "5.4.21"
+  }
+}

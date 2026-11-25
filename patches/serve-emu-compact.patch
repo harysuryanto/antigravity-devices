@@ -1,0 +1,239 @@
+--- a/src/ui/app.tsx
++++ b/src/ui/app.tsx
+@@ -61,6 +61,7 @@
+ 
+ const StableDevicePanel = memo(DevicePanel);
+ const StableControlBar = memo(ControlBar);
++const compactLayout = new URLSearchParams(window.location.search).get("layout") === "compact";
+ 
+ function useStreamControls(): StreamControls {
+   const controls = useContext(StreamControlsContext);
+@@ -189,6 +190,69 @@
+     (key: HardwareKey) => send({ type: key }),
+     [send],
+   );
++
++  const deviceView = (
++    <div className="device">
++      <DeviceStream
++        canvasRef={canvasRef}
++        send={send}
++        accessibilityEnabled={accessibilityEnabled}
++        accessibilityNodes={accessibilityNodes}
++        highlightedAccessibilityId={highlightedAccessibilityId}
++        onAccessibilityHover={setHighlightedAccessibilityId}
++        deviceSize={deviceSize}
++        keyboardProxyRef={keyboardProxyRef}
++        keyboardActive={keyboardActive}
++      />
++      <input
++        ref={keyboardProxyRef}
++        className="keyboard-proxy"
++        aria-hidden="true"
++        tabIndex={-1}
++        autoComplete="off"
++        autoCapitalize="off"
++        autoCorrect="off"
++        spellCheck={false}
++      />
++    </div>
++  );
++  const toolControls = (
++    <SideTools key={deviceSession.revision}
++      accessibilityEnabled={accessibilityEnabled}
++      accessibilityNodes={accessibilityNodes}
++      highlightedAccessibilityId={highlightedAccessibilityId}
++      onAccessibilityEnabledChange={setAccessibilityEnabled}
++      onAccessibilityNodesChange={setAccessibilityNodes}
++      onAccessibilityHighlight={setHighlightedAccessibilityId}
++    />
++  );
++
++  if (compactLayout) {
++    return (
++      <>
++        <main className="compact-layout">
++          <details
++            className="android-tools"
++            onKeyDown={(event) => {
++              const disclosure = event.currentTarget;
++              if (event.key !== "Escape" || !disclosure.open || event.defaultPrevented) return;
++              event.preventDefault();
++              disclosure.open = false;
++              disclosure.querySelector("summary")?.focus();
++            }}
++          >
++            <summary>Android tools</summary>
++            <div className="android-tools-content">
++              <section aria-label="Manage emulators"><StableDevicePanel /></section>
++              <section aria-label="Emulator controls">{toolControls}</section>
++            </div>
++          </details>
++          <div className="compact-stage">{deviceView}</div>
++        </main>
++        <StableControlBar onPress={onPress} />
++      </>
++    );
++  }
+ 
+   return (
+     <>
+@@ -211,39 +275,8 @@
+           </div>
+           {devicesOpen ? <StableDevicePanel /> : null}
+         </aside>
+-        <div className="device">
+-          <DeviceStream
+-            canvasRef={canvasRef}
+-            send={send}
+-            accessibilityEnabled={accessibilityEnabled}
+-            accessibilityNodes={accessibilityNodes}
+-            highlightedAccessibilityId={highlightedAccessibilityId}
+-            onAccessibilityHover={setHighlightedAccessibilityId}
+-            deviceSize={deviceSize}
+-            keyboardProxyRef={keyboardProxyRef}
+-            keyboardActive={keyboardActive}
+-          />
+-          <input
+-            ref={keyboardProxyRef}
+-            className="keyboard-proxy"
+-            aria-hidden="true"
+-            tabIndex={-1}
+-            autoComplete="off"
+-            autoCapitalize="off"
+-            autoCorrect="off"
+-            spellCheck={false}
+-          />
+-        </div>
+-        <aside className="side-panel">
+-          <SideTools key={deviceSession.revision}
+-            accessibilityEnabled={accessibilityEnabled}
+-            accessibilityNodes={accessibilityNodes}
+-            highlightedAccessibilityId={highlightedAccessibilityId}
+-            onAccessibilityEnabledChange={setAccessibilityEnabled}
+-            onAccessibilityNodesChange={setAccessibilityNodes}
+-            onAccessibilityHighlight={setHighlightedAccessibilityId}
+-          />
+-        </aside>
++        {deviceView}
++        <aside className="side-panel">{toolControls}</aside>
+       </main>
+       <StableControlBar onPress={onPress} />
+     </>
+--- a/src/ui/components/status-bar.tsx
++++ b/src/ui/components/status-bar.tsx
+@@ -43,7 +43,7 @@
+         .join(" • ")
+     : undefined;
+   return (
+-    <header>
++    <header data-stream-ready={status === "streaming" || undefined}>
+       <h1>serve-emu</h1>
+       {controlError && (
+         <span role="alert">
+--- a/src/ui/styles.css
++++ b/src/ui/styles.css
+@@ -821,3 +821,103 @@
+     max-height: 60vh;
+   }
+ }
++
++/* The Antigravity panel has its own device picker and uses a compact stream view. */
++#root:has(.compact-layout) {
++  position: relative;
++  height: 100dvh;
++  min-height: 0;
++  grid-template-rows: auto minmax(0, 1fr) auto;
++}
++#root:has(.compact-layout) > header {
++  grid-row: 1;
++  padding: 6px 12px;
++}
++#root:has(.compact-layout) > header h1 {
++  display: none;
++}
++#root:has(.compact-layout) > header[data-stream-ready]:not(:has([role="alert"])) {
++  position: absolute;
++  z-index: 3;
++  inset-block-start: 9px;
++  inset-inline-start: 12px;
++  max-width: calc(100% - 140px);
++  padding: 4px 0;
++  border: 0;
++}
++#root:has(.compact-layout) > header[data-stream-ready] .meta {
++  overflow: hidden;
++  text-overflow: ellipsis;
++  white-space: nowrap;
++}
++#root:has(.compact-layout):not(:has(.android-tools[open])) > header[data-stream-ready]:not(:has([role="alert"])) {
++  display: none;
++}
++#root:has(.compact-layout) > footer {
++  grid-row: 3;
++  flex-wrap: wrap;
++  padding: 6px 10px 10px;
++}
++#root:has(.compact-layout) > footer button {
++  padding-inline: 10px;
++}
++.compact-layout {
++  grid-row: 2;
++  min-height: 0;
++  align-items: stretch;
++  grid-template-columns: minmax(0, 1fr);
++  grid-template-rows: auto minmax(0, 1fr);
++  gap: 8px;
++  padding: 8px 12px;
++}
++.compact-stage {
++  container-type: size;
++  display: grid;
++  place-items: center;
++  min-height: 0;
++  min-width: 0;
++}
++.compact-stage canvas {
++  max-height: 100cqh;
++  max-width: 100cqw;
++}
++.android-tools {
++  position: relative;
++  z-index: 2;
++}
++.android-tools > summary {
++  width: fit-content;
++  margin-inline-start: auto;
++  cursor: pointer;
++  color: #e5e5ea;
++  background: #1c1c22;
++  border: 1px solid #35353e;
++  border-radius: 6px;
++  padding: 5px 9px;
++  font-size: 13px;
++}
++.android-tools > summary:hover,
++.android-tools[open] > summary {
++  background: #252530;
++}
++.android-tools > summary:focus-visible {
++  outline: 2px solid #a8c2ff;
++  outline-offset: 2px;
++}
++.android-tools-content {
++  box-sizing: border-box;
++  position: absolute;
++  inset-block-start: calc(100% + 5px);
++  inset-inline-end: 0;
++  width: min(100%, 29rem);
++  max-height: min(72dvh, 42rem);
++  overflow: auto;
++  overscroll-behavior: contain;
++  background: #17171e;
++  border: 1px solid #35353e;
++  border-radius: 8px;
++  padding: 12px;
++}
++.android-tools-content > section + section {
++  margin-block-start: 12px;
++}

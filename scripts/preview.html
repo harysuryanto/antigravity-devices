@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Devices</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    font: 0.875rem/1.45 system-ui, sans-serif;
+    --surface: #f8f9fc;
+    --raised: #edf0f6;
+    --text: #202633;
+    --muted: color-mix(in srgb, var(--text) 75%, var(--surface));
+    --line: #d7dce6;
+    --accent: #234caa;
+    --running: #136b47;
+    --danger: #982e40;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface: #17191f;
+      --raised: #222630;
+      --text: #edf0f6;
+      --line: #383f4d;
+      --accent: #a8c2ff;
+      --running: #83d3aa;
+      --danger: #ffa9b6;
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0;
+    height: 100vh;
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    background: var(--surface);
+    color: var(--text);
+  }
+  button {
+    font: inherit;
+    color: var(--accent);
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    padding: 5px 9px;
+    min-height: 34px;
+  }
+  button:hover:not(:disabled) { background: var(--raised); }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  button:active:not(:disabled) { border-color: var(--accent); }
+  button:disabled { color: var(--muted); cursor: default; }
+  .picker {
+    grid-row: 3;
+    overflow: auto;
+    width: 100%;
+    max-width: 660px;
+    margin-inline: auto;
+    padding: 16px 18px 24px;
+  }
+  .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  h1 { margin: 0; font-size: 1.14rem; font-weight: 650; }
+  h2 { margin: 20px 0 7px; font-size: 0.79rem; font-weight: 650; color: var(--muted); }
+  ul { list-style: none; margin: 0; padding: 0; border-block: 1px solid var(--line); }
+  li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 9px 0; align-items: center; }
+  li + li { border-top: 1px solid var(--line); }
+  .device-name { display: block; font-weight: 600; overflow-wrap: anywhere; }
+  .metadata, .empty, #loading { color: var(--muted); font-size: 0.82rem; }
+  .running { color: var(--running); }
+  .open { border-color: var(--line); min-width: 64px; }
+  .empty { margin: 0; }
+  .feedback { grid-row: 2; }
+  .feedback p { margin: 8px 18px 0; overflow-wrap: anywhere; }
+  #error { font-size: 0.82rem; color: var(--danger); }
+  .views {
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  .views > button { flex-shrink: 0; }
+  .views button { white-space: nowrap; }
+  .views button[aria-current="true"] { font-weight: 650; }
+  .tabs {
+    display: flex;
+    min-width: 0;
+    gap: 4px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    padding: 3px;
+  }
+  .device-tab {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    border-radius: 6px;
+    gap: 2px;
+  }
+  .device-tab:has([aria-current="true"]) { background: var(--raised); }
+  .tab-name { max-width: 10rem; overflow: hidden; text-overflow: ellipsis; }
+  .tab-close {
+    color: var(--muted);
+    padding: 4px 7px;
+    margin-inline-end: 2px;
+  }
+  .tab-close:hover:not(:disabled) { border-color: var(--line); }
+  .tab-close svg { display: block; }
+  .viewer { grid-row: 3; min-height: 0; }
+  .viewer iframe { display: block; width: 100%; height: 100%; border: 0; background: var(--surface); }
+  @media (max-width: 290px) {
+    .picker { padding-inline: 12px; }
+    .open { min-width: 0; }
+  }
+</style>
+<nav id="views" class="views" aria-label="Device views" hidden>
+  <button id="back" type="button">All devices</button>
+  <div id="tabs" class="tabs"></div>
+</nav>
+<div class="feedback">
+  <p id="loading" role="status">Finding local devices…</p>
+  <p id="error" role="alert" hidden></p>
+</div>
+<main id="picker" class="picker">
+  <header class="toolbar">
+    <h1>Devices</h1>
+    <button id="refresh" type="button" disabled>Refresh devices</button>
+  </header>
+  <div id="groups"></div>
+</main>
+<section id="viewer" class="viewer" aria-label="Device preview" hidden>
+  <iframe id="stream" title="Device preview"></iframe>
+</section>
+<script>
+  const picker = document.querySelector("#picker");
+  const viewer = document.querySelector("#viewer");
+  const refresh = document.querySelector("#refresh");
+  const back = document.querySelector("#back");
+  const views = document.querySelector("#views");
+  const tabs = document.querySelector("#tabs");
+  const openDevices = new Map();
+  const frame = document.querySelector("#stream");
+  const loading = document.querySelector("#loading");
+  const groups = document.querySelector("#groups");
+  const alertMessage = document.querySelector("#error");
+  const requests = new Map();
+  const platforms = [
+    { id: "ios", label: "iOS simulators", empty: "No simulators found. Add one in Xcode." },
+    { id: "android", label: "Android emulators", empty: "No emulators found. Add one in Android Studio." }
+  ];
+  const broadcast = (message) => parent.postMessage({ jsonrpc: "2.0", ...message }, "*");
+  const stateLabels = { running: "Running", starting: "Starting", stopped: "Stopped" };
+  let requestId = 1;
+  let connected = false;
+  let listing;
+  let busy = "";
+  let activeDevice = "";
+
+  function parse(result) {
+    const text = result?.content?.[0]?.text;
+    if (result?.isError) throw new Error(text || "The device could not be opened.");
+    return result?.structuredContent || JSON.parse(text ?? "{}");
+  }
+
+  function call(name, args = {}) {
+    const id = ++requestId;
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        requests.delete(id);
+        reject(new Error("The device is taking longer than expected. Refresh the list and try again."));
+      }, 110_000);
+      requests.set(id, { resolve, reject, timeout });
+      broadcast({ id, method: "tools/call", params: { name, arguments: args } });
+    });
+  }
+
+  function showError(message) {
+    alertMessage.textContent = message;
+    alertMessage.hidden = !message;
+  }
+
+  function makeRow(device) {
+    const row = document.createElement("li");
+    const info = document.createElement("div");
+    const name = document.createElement("span");
+    name.className = "device-name";
+    name.textContent = device.name;
+    const metadata = document.createElement("span");
+    metadata.className = "metadata";
+    const state = document.createElement("span");
+    if (device.state === "running") state.className = "running";
+    state.textContent = stateLabels[device.state];
+    metadata.append(device.detail + " · ", state);
+    info.append(name, metadata);
+    const open = document.createElement("button");
+    open.type = "button";
+    open.className = "open";
+    open.dataset.device = device.id;
+    const action = device.state === "stopped" ? "Start" : device.state === "starting" ? "Connect" : "Open";
+    open.setAttribute("aria-label", action + " " + device.name);
+    open.textContent = busy === device.id ? (action === "Start" ? "Starting…" : "Opening…") : action;
+    open.disabled = Boolean(busy);
+    open.addEventListener("click", () => select(device));
+    row.append(info, open);
+    return row;
+  }
+
+  function drawTabs(focusId = "") {
+    views.hidden = openDevices.size === 0;
+    back.disabled = Boolean(busy);
+    back.setAttribute("aria-current", String(!activeDevice));
+    let focus;
+    const elements = [...openDevices.values()].map((device) => {
+      const item = document.createElement("div");
+      item.className = "device-tab";
+
+      const show = document.createElement("button");
+      show.type = "button";
+      show.className = "tab-name";
+      show.textContent = device.name;
+      show.title = device.name;
+      show.setAttribute("aria-current", String(activeDevice === device.id));
+      show.disabled = Boolean(busy);
+      show.addEventListener("click", () => {
+        if (activeDevice !== device.id) void select(device, true);
+      });
+      if (focusId === device.id) focus = show;
+
+      const close = document.createElement("button");
+      close.type = "button";
+      close.className = "tab-close";
+      close.setAttribute("aria-label", "Close " + device.name + " tab");
+      close.title = "Close " + device.name + " tab";
+      close.disabled = Boolean(busy);
+      close.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="m2.5 2.5 7 7m0-7-7 7" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
+      close.addEventListener("click", () => {
+        openDevices.delete(device.id);
+        if (activeDevice === device.id) {
+          showPicker(device.id);
+        } else {
+          drawTabs(activeDevice);
+          if (!activeDevice) (views.hidden ? refresh : back).focus();
+        }
+      });
+
+      item.append(show, close);
+      return item;
+    });
+    tabs.replaceChildren(...elements);
+    focus?.focus();
+  }
+
+  function draw() {
+    refresh.disabled = !connected || Boolean(busy);
+    picker.setAttribute("aria-busy", String(Boolean(busy) || !listing));
+    loading.hidden = (!busy && Boolean(listing)) || !alertMessage.hidden;
+    if (!listing) return;
+    const focused = document.activeElement?.dataset.device;
+    const sections = platforms.map((platform) => {
+      const section = document.createElement("section");
+      const title = document.createElement("h2");
+      title.textContent = platform.label;
+      section.append(title);
+      const devices = listing.devices.filter((device) => device.platform === platform.id);
+      if (devices.length) {
+        const list = document.createElement("ul");
+        list.append(...devices.map(makeRow));
+        section.append(list);
+      } else {
+        const empty = document.createElement("p");
+        empty.className = "empty";
+        empty.textContent = listing.issues?.[platform.id] || platform.empty;
+        section.append(empty);
+      }
+      return section;
+    });
+    groups.replaceChildren(...sections);
+    if (focused && !busy) focusDevice(focused);
+  }
+
+  function focusDevice(id) {
+    [...groups.querySelectorAll("button")].find((button) => button.dataset.device === id)?.focus();
+  }
+
+  async function reload(restoreFocus = "") {
+    busy = "refresh";
+    showError("");
+    loading.textContent = "Finding local devices…";
+    draw();
+    drawTabs();
+    try {
+      listing = parse(await call("list_devices"));
+    } catch (error) {
+      showError(error.message);
+    } finally {
+      busy = "";
+      draw();
+      drawTabs();
+      if (restoreFocus) focusDevice(restoreFocus);
+    }
+  }
+
+  function showPicker(focusId) {
+    activeDevice = "";
+    frame.removeAttribute("src");
+    viewer.hidden = true;
+    picker.hidden = false;
+    void reload(focusId);
+  }
+
+  async function select(device, fromTab = false) {
+    if (busy) return;
+    const status = device.state === "stopped" ? "Starting " : "Opening ";
+    loading.textContent = status + device.name + "…";
+    busy = device.id;
+    showError("");
+    draw();
+    drawTabs();
+    try {
+      const data = parse(await call("open_device", { id: device.id }));
+      const url = new URL(data.url);
+      if (url.protocol !== "http:" || url.hostname !== "127.0.0.1" || url.pathname !== "/") {
+        throw new Error("The preview didn’t return a local URL.");
+      }
+      const opened = { ...data.device, state: "running" };
+      activeDevice = opened.id;
+      openDevices.set(opened.id, opened);
+      frame.title = opened.name + " live preview";
+      if (opened.platform === "android") url.searchParams.set("layout", "compact");
+      frame.src = url.href;
+      picker.hidden = true;
+      viewer.hidden = false;
+    } catch (error) {
+      showError(error.message);
+    } finally {
+      busy = "";
+      draw();
+      drawTabs(picker.hidden || fromTab ? device.id : "");
+      if (!picker.hidden && !fromTab) focusDevice(device.id);
+    }
+  }
+
+  refresh.addEventListener("click", async () => {
+    await reload();
+    refresh.focus();
+  });
+  back.addEventListener("click", () => {
+    if (activeDevice) showPicker(activeDevice);
+  });
+
+  addEventListener("message", ({ source, data }) => {
+    if (source !== parent || data?.jsonrpc !== "2.0") return;
+    if (data.id === 1 && data.result) {
+      connected = true;
+      broadcast({ method: "ui/notifications/initialized" });
+      draw();
+    }
+    if (data.method === "ui/notifications/tool-result" && !listing) {
+      try {
+        listing = parse(data.params);
+      } catch (error) {
+        showError(error.message);
+      }
+      draw();
+    }
+    const pending = requests.get(data.id);
+    if (pending) {
+      requests.delete(data.id);
+      clearTimeout(pending.timeout);
+      if (data.error) pending.reject(new Error(data.error.message));
+      else pending.resolve(data.result);
+    }
+  });
+
+  broadcast({
+    id: 1, method: "ui/initialize",
+    params: { protocolVersion: "2026-01-26", appInfo: { name: "Devices", version: "1.4.0" }, appCapabilities: {} }
+  });
+</script>
+</html>
