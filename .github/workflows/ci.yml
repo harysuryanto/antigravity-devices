@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-validate:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Syntax check scripts
+        run: |
+          node --check scripts/server.mjs
+          node --check scripts/devices.mjs
+          node --check scripts/android-preview.mjs
+          node --check build/package.mjs
+
+      - name: Build plugin package
+        run: bun run build
+
+      - name: Verify package layout and manifests
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const required = [
+              "dist/plugin/plugin.json",
+              "dist/plugin/mcp_config.json",
+              "dist/plugin/rules/AGENTS.md",
+              "dist/plugin/scripts/server.mjs",
+              "dist/plugin/scripts/devices.mjs",
+              "dist/plugin/scripts/android-preview.mjs",
+              "dist/plugin/scripts/preview.html"
+            ];
+            for (const file of required) {
+              if (!fs.existsSync(file)) throw new Error("Missing build artifact: " + file);
+            }
+            const plugin = JSON.parse(fs.readFileSync("dist/plugin/plugin.json", "utf8"));
+            if (plugin.name !== "agy-devices") throw new Error("Unexpected plugin name: " + plugin.name);
+            JSON.parse(fs.readFileSync("dist/plugin/mcp_config.json", "utf8"));
+            console.log("Package layout verified for", plugin.name, plugin.version);
+          '
+
+      - name: Validate with agy CLI (when available)
+        run: |
+          if command -v agy >/dev/null 2>&1; then
+            bun run validate
+          else
+            echo "agy CLI not installed in runner; skipped agy plugin validate --strict"
+          fi

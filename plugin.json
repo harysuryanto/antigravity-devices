@@ -1,7 +1,7 @@
 {
   "$schema": "https://antigravity.google/schemas/v1/plugin.json",
-  "name": "ios-simulator",
+  "name": "agy-devices",
   "displayName": "Devices",
-  "version": "1.4.0",
+  "version": "0.5.0",
   "description": "Choose a local iOS simulator or Android emulator and open it beside an Antigravity conversation."
 }

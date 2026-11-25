@@ -10,7 +10,7 @@ if (!Number.isInteger(port) || port < 1024 || port > 65535 || !/^emulator-\d+$/.
 }
 
 const host = "127.0.0.1";
-const packageRoot = fileURLToPath(new URL("../android-tools/node_modules/serve-emu", import.meta.url));
+const packageRoot = fileURLToPath(new URL("../runtime-tools/node_modules/serve-emu", import.meta.url));
 const bundledCli = join(packageRoot, "src/cli.ts");
 const uiRoot = join(packageRoot, "dist/ui");
 // This integration uses the API in the locally installed and tested T3 Code hub.
