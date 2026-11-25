@@ -1,20 +1,72 @@
 --- a/src/ui/app.tsx
 +++ b/src/ui/app.tsx
-@@ -61,6 +61,7 @@
+@@ -61,6 +61,15 @@
  
  const StableDevicePanel = memo(DevicePanel);
  const StableControlBar = memo(ControlBar);
-+const compactLayout = new URLSearchParams(window.location.search).get("layout") === "compact";
++const urlSearchParams = new URLSearchParams(window.location.search);
++const compactLayout = urlSearchParams.get("layout") === "compact";
++if (compactLayout) {
++  const initialTheme = urlSearchParams.get("theme");
++  if (initialTheme === "light" || initialTheme === "dark") {
++    document.documentElement.dataset.theme = initialTheme;
++    document.documentElement.style.colorScheme = initialTheme;
++  }
++}
  
  function useStreamControls(): StreamControls {
    const controls = useContext(StreamControlsContext);
-@@ -189,6 +190,69 @@
+@@ -73,6 +82,29 @@
+   const { state, send, clearControlError } = useStream(canvasRef);
+   const deviceWidth = state.deviceSize?.width;
+   const deviceHeight = state.deviceSize?.height;
++
++  useEffect(() => {
++    if (!compactLayout) return;
++    const onMessage = (event: MessageEvent) => {
++      if (event.source !== window.parent) return;
++      const data = event.data;
++      if (!data || typeof data !== "object" || data.type !== "ag-theme") return;
++      if (data.theme === "light" || data.theme === "dark") {
++        document.documentElement.dataset.theme = data.theme;
++        document.documentElement.style.colorScheme = data.theme;
++      }
++      const vars = data.variables;
++      if (vars && typeof vars === "object") {
++        for (const [key, value] of Object.entries(vars)) {
++          if (typeof key === "string" && key.startsWith("--") && typeof value === "string") {
++            document.documentElement.style.setProperty(key, value);
++          }
++        }
++      }
++    };
++    window.addEventListener("message", onMessage);
++    return () => window.removeEventListener("message", onMessage);
++  }, []);
+   const controls = useMemo<StreamControls>(
+     () => ({
+       canvasRef,
+@@ -189,7 +221,100 @@
      (key: HardwareKey) => send({ type: key }),
      [send],
    );
++  const toolsRef = useRef<HTMLDetailsElement>(null);
+ 
++  useEffect(() => {
++    if (!compactLayout) return;
++    const onPointerDown = (event: PointerEvent) => {
++      const disclosure = toolsRef.current;
++      if (!disclosure?.open) return;
++      if (event.target instanceof Node && !disclosure.contains(event.target)) {
++        disclosure.open = false;
++      }
++    };
++    document.addEventListener("pointerdown", onPointerDown);
++    return () => document.removeEventListener("pointerdown", onPointerDown);
++  }, []);
 +
 +  const deviceView = (
-+    <div className="device">
++    <div className="device" data-has-size={deviceSize ? "true" : undefined}>
 +      <DeviceStream
 +        canvasRef={canvasRef}
 +        send={send}
@@ -52,33 +104,50 @@
 +  if (compactLayout) {
 +    return (
 +      <>
++        <details
++          ref={toolsRef}
++          className="android-tools"
++          onKeyDown={(event) => {
++            const disclosure = event.currentTarget;
++            if (event.key !== "Escape" || !disclosure.open || event.defaultPrevented) return;
++            event.preventDefault();
++            disclosure.open = false;
++            disclosure.querySelector("summary")?.focus();
++          }}
++        >
++          <summary>
++            <svg className="tools-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
++              <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
++              <circle cx="5.5" cy="4.5" r="1.5" stroke="currentColor" strokeWidth="1.5" />
++              <circle cx="10.5" cy="8" r="1.5" stroke="currentColor" strokeWidth="1.5" />
++              <circle cx="6.5" cy="11.5" r="1.5" stroke="currentColor" strokeWidth="1.5" />
++            </svg>
++            <span>Android tools</span>
++            <svg className="tools-chevron" viewBox="0 0 16 16" fill="none" aria-hidden="true">
++              <path d="M4.75 6.5 8 9.75 11.25 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
++            </svg>
++          </summary>
++          <div className="android-tools-content">
++            <section className="tools-section-group" aria-label="Manage emulators">
++              <StableDevicePanel />
++            </section>
++            <section className="tools-section-group" aria-label="Emulator controls">
++              {toolControls}
++            </section>
++          </div>
++        </details>
 +        <main className="compact-layout">
-+          <details
-+            className="android-tools"
-+            onKeyDown={(event) => {
-+              const disclosure = event.currentTarget;
-+              if (event.key !== "Escape" || !disclosure.open || event.defaultPrevented) return;
-+              event.preventDefault();
-+              disclosure.open = false;
-+              disclosure.querySelector("summary")?.focus();
-+            }}
-+          >
-+            <summary>Android tools</summary>
-+            <div className="android-tools-content">
-+              <section aria-label="Manage emulators"><StableDevicePanel /></section>
-+              <section aria-label="Emulator controls">{toolControls}</section>
-+            </div>
-+          </details>
 +          <div className="compact-stage">{deviceView}</div>
 +        </main>
 +        <StableControlBar onPress={onPress} />
 +      </>
 +    );
 +  }
- 
++
    return (
      <>
-@@ -211,39 +275,8 @@
+       <main
+@@ -211,39 +336,8 @@
            </div>
            {devicesOpen ? <StableDevicePanel /> : null}
          </aside>
@@ -120,71 +189,460 @@
        </main>
        <StableControlBar onPress={onPress} />
      </>
+--- a/src/ui/components/control-bar.tsx
++++ b/src/ui/components/control-bar.tsx
+@@ -1,3 +1,4 @@
++import type { ReactNode } from "react";
+ import type { Gesture } from "../../shared/control-contracts";
+ 
+ export type HardwareKey = Extract<
+@@ -9,19 +10,52 @@
+   onPress: (key: HardwareKey) => void;
+ };
+ 
+-const BUTTONS: { key: HardwareKey; label: string }[] = [
+-  { key: "back", label: "Back" },
+-  { key: "home", label: "Home" },
+-  { key: "recents", label: "Recents" },
+-  { key: "power", label: "Power" },
++const BUTTONS: { key: HardwareKey; label: string; icon: ReactNode }[] = [
++  {
++    key: "back",
++    label: "Back",
++    icon: (
++      <svg className="hw-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
++        <path d="M9.75 3.75 5.25 8l4.5 4.25" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
++      </svg>
++    ),
++  },
++  {
++    key: "home",
++    label: "Home",
++    icon: (
++      <svg className="hw-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
++        <circle cx="8" cy="8" r="4.25" stroke="currentColor" strokeWidth="1.5" />
++      </svg>
++    ),
++  },
++  {
++    key: "recents",
++    label: "Recents",
++    icon: (
++      <svg className="hw-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
++        <rect x="4" y="4" width="8" height="8" rx="1.75" stroke="currentColor" strokeWidth="1.5" />
++      </svg>
++    ),
++  },
++  {
++    key: "power",
++    label: "Power",
++    icon: (
++      <svg className="hw-icon" viewBox="0 0 16 16" fill="none" aria-hidden="true">
++        <path d="M8 2.75v4.5M5.15 4.55a4.5 4.5 0 1 0 5.7 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
++      </svg>
++    ),
++  },
+ ];
+ 
+ export function ControlBar({ onPress }: Props) {
+   return (
+     <footer>
+       {BUTTONS.map((b) => (
+-        <button key={b.key} onClick={() => onPress(b.key)}>
+-          {b.label}
++        <button key={b.key} type="button" onClick={() => onPress(b.key)} title={b.label}>
++          {b.icon}
++          <span className="hw-label">{b.label}</span>
+         </button>
+       ))}
+     </footer>
 --- a/src/ui/components/status-bar.tsx
 +++ b/src/ui/components/status-bar.tsx
-@@ -43,7 +43,7 @@
+@@ -43,18 +43,19 @@
          .join(" • ")
      : undefined;
    return (
 -    <header>
-+    <header data-stream-ready={status === "streaming" || undefined}>
++    <header data-stream-status={status} data-stream-ready={status === "streaming" || undefined}>
        <h1>serve-emu</h1>
        {controlError && (
-         <span role="alert">
+-        <span role="alert">
+-          Input failed: {controlError}{" "}
+-          <button onClick={onDismissError} aria-label="Dismiss input error">
++        <span className="status-alert" role="alert">
++          <span>Input failed: {controlError}</span>
++          <button type="button" onClick={onDismissError} aria-label="Dismiss input error">
+             Dismiss
+           </button>
+         </span>
+       )}
+       <div className="meta" title={detail}>
+-        {meta}
++        <span className="status-indicator" aria-hidden="true" />
++        <span className="meta-text">{meta}</span>
+       </div>
+     </header>
+   );
 --- a/src/ui/styles.css
 +++ b/src/ui/styles.css
-@@ -821,3 +821,103 @@
+@@ -821,3 +821,662 @@
      max-height: 60vh;
    }
  }
 +
-+/* The Antigravity panel has its own device picker and uses a compact stream view. */
-+#root:has(.compact-layout) {
-+  position: relative;
++.hw-icon {
++  width: 0.875rem;
++  height: 0.875rem;
++  flex: none;
++}
++footer button {
++  display: inline-flex;
++  align-items: center;
++  justify-content: center;
++  gap: 0.375rem;
++}
++.status-alert {
++  display: inline-flex;
++  align-items: center;
++  gap: 0.5rem;
++}
++
++/* Antigravity Chat App Auxiliary Pane compact theme and layout */
++:root:has(.compact-layout) {
++  color-scheme: light dark;
++  --ag-bg-fallback: #f7f7f8;
++  --ag-card-fallback: #ffffff;
++  --ag-muted-fallback: #eff0f1;
++  --ag-fg-fallback: #1d1f21;
++  --ag-fg-2-fallback: #3d4348;
++  --ag-fg-muted-fallback: #555e66;
++  --ag-border-fallback: rgba(0, 0, 0, 0.08);
++  --ag-card-border-fallback: rgba(0, 0, 0, 0.11);
++  --ag-primary-fallback: #007acc;
++  --ag-error-fallback: #c63737;
++  --ag-success-fallback: #4d853b;
++  --ag-warning-fallback: #9c7b16;
++  --hover-mix: 5%;
++  --press-mix: 9%;
++  --fill-mix: 6.5%;
++  --field-mix: 4.8%;
++  --popover-shadow: 0 10px 28px rgba(0, 0, 0, 0.14);
++  --device-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
++
++  --ag-bg: var(--color-background-primary, var(--background, var(--ag-bg-fallback)));
++  --ag-card: var(--color-background-secondary, var(--card, var(--ag-card-fallback)));
++  --ag-muted: var(--color-background-tertiary, var(--muted, var(--ag-muted-fallback)));
++  --ag-fg: var(--color-text-primary, var(--foreground, var(--ag-fg-fallback)));
++  --ag-fg-2: var(--color-text-secondary, var(--secondary-foreground, var(--ag-fg-2-fallback)));
++  --ag-fg-muted: var(--color-text-tertiary, var(--muted-foreground, var(--ag-fg-muted-fallback)));
++  --ag-border: var(--color-border-secondary, var(--border, var(--ag-border-fallback)));
++  --ag-card-border: var(--color-border-primary, var(--card-border, var(--ag-card-border-fallback)));
++  --ag-primary: var(--color-ring-primary, var(--primary, var(--ag-primary-fallback)));
++  --ag-error: var(--color-text-danger, var(--error, var(--ag-error-fallback)));
++  --ag-success: var(--color-text-success, var(--success, var(--ag-success-fallback)));
++  --ag-warning: var(--color-text-warning, var(--warning, var(--ag-warning-fallback)));
++
++  --ag-hover: color-mix(in srgb, var(--ag-fg) var(--hover-mix), transparent);
++  --ag-press: color-mix(in srgb, var(--ag-fg) var(--press-mix), transparent);
++  --ag-line: color-mix(in srgb, var(--ag-fg) 8%, transparent);
++  --ag-fill: color-mix(in srgb, var(--ag-fg) var(--fill-mix), transparent);
++  --ag-field: color-mix(in srgb, var(--ag-fg) var(--field-mix), transparent);
++  --ag-ring: var(--color-ring-primary, color-mix(in srgb, var(--ag-primary) 72%, transparent));
++
++  --ag-font: var(--font-sans, var(--font-family, "Google Sans Flex", "Google Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif));
++  --ag-mono: var(--font-mono, var(--editor-font-family, "Google Sans Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace));
++  --text-2xs: var(--font-text-xs-size, 0.6875rem);
++  --text-xs: var(--font-text-xs-size, 0.75rem);
++  --text-sm: var(--font-text-sm-size, 0.8125rem);
++  --text-base: var(--font-text-md-size, 0.875rem);
++  --weight-medium: var(--font-weight-medium, 500);
++  --weight-semibold: var(--font-weight-semibold, 600);
++
++  --r-sm: 4px;
++  --r-md: 6px;
++  --r-lg: 8px;
++  --ease: cubic-bezier(0.22, 1, 0.36, 1);
++
++  font-family: var(--ag-font);
++  background: var(--ag-bg);
++}
++
++@media (prefers-color-scheme: dark) {
++  :root:has(.compact-layout):not([data-theme="light"]) {
++    --ag-bg-fallback: #131313;
++    --ag-card-fallback: #1a1a1c;
++    --ag-muted-fallback: #202023;
++    --ag-fg-fallback: #fafafa;
++    --ag-fg-2-fallback: #d4d4d8;
++    --ag-fg-muted-fallback: #9e9ea6;
++    --ag-border-fallback: rgba(255, 255, 255, 0.08);
++    --ag-card-border-fallback: rgba(255, 255, 255, 0.11);
++    --ag-primary-fallback: #4da3ff;
++    --ag-error-fallback: #f06868;
++    --ag-success-fallback: #7aae66;
++    --ag-warning-fallback: #d4b844;
++    --hover-mix: 6.5%;
++    --press-mix: 11%;
++    --fill-mix: 8.5%;
++    --field-mix: 7%;
++    --popover-shadow: 0 14px 36px rgba(0, 0, 0, 0.5);
++    --device-shadow: 0 12px 32px rgba(0, 0, 0, 0.42);
++  }
++}
++
++:root[data-theme="dark"]:has(.compact-layout) {
++  color-scheme: dark;
++  --ag-bg-fallback: #131313;
++  --ag-card-fallback: #1a1a1c;
++  --ag-muted-fallback: #202023;
++  --ag-fg-fallback: #fafafa;
++  --ag-fg-2-fallback: #d4d4d8;
++  --ag-fg-muted-fallback: #9e9ea6;
++  --ag-border-fallback: rgba(255, 255, 255, 0.08);
++  --ag-card-border-fallback: rgba(255, 255, 255, 0.11);
++  --ag-primary-fallback: #4da3ff;
++  --ag-error-fallback: #f06868;
++  --ag-success-fallback: #7aae66;
++  --ag-warning-fallback: #d4b844;
++  --hover-mix: 6.5%;
++  --press-mix: 11%;
++  --fill-mix: 8.5%;
++  --field-mix: 7%;
++  --popover-shadow: 0 14px 36px rgba(0, 0, 0, 0.5);
++  --device-shadow: 0 12px 32px rgba(0, 0, 0, 0.42);
++}
++
++:root[data-theme="light"]:has(.compact-layout) {
++  color-scheme: light;
++}
++
++body:has(.compact-layout) {
++  box-sizing: border-box;
++  margin: 0;
++  height: 100vh;
 +  height: 100dvh;
 +  min-height: 0;
-+  grid-template-rows: auto minmax(0, 1fr) auto;
++  background: var(--ag-bg);
++  color: var(--ag-fg);
++  font-family: var(--ag-font);
++  font-size: var(--text-base);
++  overflow: hidden;
++  -webkit-font-smoothing: antialiased;
++  text-rendering: optimizeLegibility;
 +}
++
++body:has(.compact-layout) *,
++body:has(.compact-layout) *::before,
++body:has(.compact-layout) *::after {
++  box-sizing: border-box;
++  scrollbar-width: thin;
++  scrollbar-color: color-mix(in srgb, var(--ag-fg) 22%, transparent) transparent;
++}
++body:has(.compact-layout) ::-webkit-scrollbar {
++  width: 10px;
++  height: 10px;
++}
++body:has(.compact-layout) ::-webkit-scrollbar-thumb {
++  background: color-mix(in srgb, var(--ag-fg) 20%, transparent);
++  border: 3px solid transparent;
++  background-clip: padding-box;
++  border-radius: 10px;
++}
++body:has(.compact-layout) ::-webkit-scrollbar-track {
++  background: transparent;
++}
++body:has(.compact-layout) ::selection {
++  background: color-mix(in srgb, var(--ag-primary) 28%, transparent);
++}
++
++#root:has(.compact-layout) {
++  position: fixed;
++  inset: 0;
++  width: 100%;
++  height: 100%;
++  min-height: 0;
++  overflow: hidden;
++  display: grid;
++  grid-template-columns: minmax(0, 1fr) auto;
++  grid-template-rows: auto minmax(0, 1fr) auto;
++  background: var(--ag-bg);
++  color: var(--ag-fg);
++}
++
++/* Top Utility Bar: Status (left) + Android tools disclosure (right) */
 +#root:has(.compact-layout) > header {
 +  grid-row: 1;
-+  padding: 6px 12px;
++  grid-column: 1;
++  min-width: 0;
++  min-height: 2.25rem;
++  padding: 0.25rem 0.5rem 0.25rem 0.75rem;
++  border-bottom: 1px solid var(--ag-line);
++  background: var(--ag-bg);
++  display: flex;
++  align-items: center;
++  justify-content: flex-start;
++  gap: 0.5rem;
 +}
 +#root:has(.compact-layout) > header h1 {
 +  display: none;
 +}
-+#root:has(.compact-layout) > header[data-stream-ready]:not(:has([role="alert"])) {
-+  position: absolute;
-+  z-index: 3;
-+  inset-block-start: 9px;
-+  inset-inline-start: 12px;
-+  max-width: calc(100% - 140px);
-+  padding: 4px 0;
-+  border: 0;
++#root:has(.compact-layout) > header .meta {
++  display: inline-flex;
++  align-items: center;
++  gap: 0.4rem;
++  min-width: 0;
++  font-size: var(--text-xs);
++  color: var(--ag-fg-muted);
++  font-variant-numeric: tabular-nums;
 +}
-+#root:has(.compact-layout) > header[data-stream-ready] .meta {
++#root:has(.compact-layout) > header .meta-text {
 +  overflow: hidden;
 +  text-overflow: ellipsis;
 +  white-space: nowrap;
 +}
-+#root:has(.compact-layout):not(:has(.android-tools[open])) > header[data-stream-ready]:not(:has([role="alert"])) {
++#root:has(.compact-layout) > header .status-indicator {
++  width: 6px;
++  height: 6px;
++  border-radius: 50%;
++  flex: none;
++  background: var(--ag-warning);
++}
++#root:has(.compact-layout) > header[data-stream-status="streaming"] .status-indicator {
++  background: var(--ag-success);
++}
++#root:has(.compact-layout) > header[data-stream-status="error"] .status-indicator,
++#root:has(.compact-layout) > header[data-stream-status="closed"] .status-indicator {
++  background: var(--ag-error);
++}
++#root:has(.compact-layout) > header .status-alert {
++  min-width: 0;
++  padding: 0.125rem 0.25rem 0.125rem 0.5rem;
++  border-radius: var(--r-md);
++  border: 1px solid color-mix(in srgb, var(--ag-error) 32%, transparent);
++  background: color-mix(in srgb, var(--ag-error) 10%, var(--ag-card));
++  color: var(--ag-fg);
++  font-size: var(--text-xs);
++}
++#root:has(.compact-layout) > header .status-alert span {
++  overflow: hidden;
++  text-overflow: ellipsis;
++  white-space: nowrap;
++}
++#root:has(.compact-layout) > header .status-alert button {
++  min-height: 1.375rem;
++  padding: 0 0.4375rem;
++  font-size: var(--text-2xs);
++}
++#root:has(.compact-layout) > header:has(.status-alert) .meta {
 +  display: none;
 +}
-+#root:has(.compact-layout) > footer {
-+  grid-row: 3;
-+  flex-wrap: wrap;
-+  padding: 6px 10px 10px;
++
++#root:has(.compact-layout) > .android-tools {
++  grid-row: 1;
++  grid-column: 2;
++  position: relative;
++  z-index: 20;
++  display: flex;
++  align-items: center;
++  padding: 0.25rem 0.75rem 0.25rem 0.25rem;
++  border-bottom: 1px solid var(--ag-line);
++  background: var(--ag-bg);
 +}
-+#root:has(.compact-layout) > footer button {
-+  padding-inline: 10px;
++.android-tools > summary {
++  list-style: none;
++  display: inline-flex;
++  align-items: center;
++  gap: 0.375rem;
++  min-height: 1.75rem;
++  padding: 0 0.5625rem;
++  border-radius: var(--r-md);
++  border: 1px solid transparent;
++  background: transparent;
++  color: var(--ag-fg-2);
++  font-size: var(--text-xs);
++  font-weight: var(--weight-medium);
++  cursor: pointer;
++  user-select: none;
++  white-space: nowrap;
++  transition: background-color 140ms var(--ease), color 140ms var(--ease), border-color 140ms var(--ease);
 +}
-+.compact-layout {
++.android-tools > summary::-webkit-details-marker {
++  display: none;
++}
++.android-tools > summary:hover {
++  background: var(--ag-hover);
++  color: var(--ag-fg);
++}
++.android-tools[open] > summary {
++  background: var(--ag-fill);
++  color: var(--ag-fg);
++}
++.android-tools > summary:focus-visible {
++  outline: 2px solid var(--ag-ring);
++  outline-offset: 1px;
++}
++.tools-icon,
++.tools-chevron {
++  width: 0.875rem;
++  height: 0.875rem;
++  flex: none;
++}
++.tools-icon circle {
++  fill: var(--ag-bg);
++}
++.android-tools[open] .tools-icon circle,
++.android-tools > summary:hover .tools-icon circle {
++  fill: var(--ag-card);
++}
++.tools-chevron {
++  color: var(--ag-fg-muted);
++  transition: transform 140ms var(--ease);
++}
++.android-tools[open] .tools-chevron {
++  transform: rotate(180deg);
++}
++
++.android-tools-content {
++  box-sizing: border-box;
++  position: absolute;
++  inset-block-start: calc(100% + 6px);
++  inset-inline-end: 0.75rem;
++  width: min(calc(100vw - 1.5rem), 25rem);
++  max-height: min(calc(100dvh - 5.75rem), 38rem);
++  overflow-y: auto;
++  overscroll-behavior: contain;
++  background: var(--ag-card);
++  border: 1px solid var(--ag-card-border);
++  border-radius: var(--r-lg);
++  box-shadow: var(--popover-shadow);
++  padding: 0.75rem;
++}
++.tools-section-group {
++  display: flex;
++  flex-direction: column;
++  gap: 0;
++}
++.tools-section-group + .tools-section-group {
++  margin-block-start: 0.75rem;
++  border: 1px solid var(--ag-line);
++  border-radius: var(--r-lg);
++  overflow: hidden;
++  background: var(--ag-bg);
++}
++
++/* Stage & Device Frame */
++#root:has(.compact-layout) .compact-layout {
 +  grid-row: 2;
++  grid-column: 1 / -1;
 +  min-height: 0;
-+  align-items: stretch;
++  min-width: 0;
++  display: grid;
 +  grid-template-columns: minmax(0, 1fr);
-+  grid-template-rows: auto minmax(0, 1fr);
-+  gap: 8px;
-+  padding: 8px 12px;
++  grid-template-rows: minmax(0, 1fr);
++  align-items: stretch;
++  gap: 0;
++  padding: 0.625rem 0.75rem;
++  background: var(--ag-bg);
 +}
 +.compact-stage {
 +  container-type: size;
@@ -193,47 +651,300 @@
 +  min-height: 0;
 +  min-width: 0;
 +}
-+.compact-stage canvas {
-+  max-height: 100cqh;
-+  max-width: 100cqw;
++#root:has(.compact-layout) .compact-stage .device {
++  border-radius: 16px;
++  border: 1px solid var(--ag-card-border);
++  box-shadow: var(--device-shadow);
++  background: #000;
 +}
-+.android-tools {
-+  position: relative;
-+  z-index: 2;
++#root:has(.compact-layout) .compact-stage .device:not([data-has-size]) {
++  aspect-ratio: 9 / 19.5;
++  height: min(calc(100cqh - 8px), 32rem);
++  width: auto;
++  max-width: calc(100cqw - 8px);
++  background: color-mix(in srgb, var(--ag-fg) 3.5%, var(--ag-card));
++  box-shadow: none;
++  display: grid;
++  place-items: center;
 +}
-+.android-tools > summary {
-+  width: fit-content;
-+  margin-inline-start: auto;
++#root:has(.compact-layout) .compact-stage .device:not([data-has-size]) canvas {
++  opacity: 0;
++  width: 100%;
++  height: 100%;
++}
++#root:has(.compact-layout) .compact-stage canvas {
++  max-height: calc(100cqh - 4px);
++  max-width: calc(100cqw - 4px);
++}
++#root:has(.compact-layout) .keyboard-hint {
++  background: color-mix(in srgb, var(--ag-card) 92%, transparent);
++  color: var(--ag-fg);
++  border: 1px solid var(--ag-card-border);
++  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
++  font-size: var(--text-xs);
++  font-weight: var(--weight-medium);
++  padding: 0.3125rem 0.75rem;
++}
++
++/* Bottom Hardware Control Bar */
++#root:has(.compact-layout) > footer {
++  grid-row: 3;
++  grid-column: 1 / -1;
++  flex-wrap: wrap;
++  gap: 0.375rem;
++  padding: 0.375rem 0.625rem;
++  border-top: 1px solid var(--ag-line);
++  background: var(--ag-bg);
++}
++#root:has(.compact-layout) > footer button {
++  background: transparent;
++  border-color: transparent;
++  color: var(--ag-fg-2);
++  min-height: 1.75rem;
++  padding: 0 0.625rem;
++  border-radius: var(--r-md);
++  font-size: var(--text-xs);
++  font-weight: var(--weight-medium);
++}
++#root:has(.compact-layout) > footer button:hover:not(:disabled) {
++  background: var(--ag-hover);
++  color: var(--ag-fg);
++}
++#root:has(.compact-layout) > footer button:active:not(:disabled) {
++  background: var(--ag-press);
++}
++
++/* Form Controls & Tool Panels inside Compact Mode */
++#root:has(.compact-layout) button {
++  font-family: inherit;
++  background: var(--ag-fill);
++  color: var(--ag-fg);
++  border: 1px solid transparent;
++  border-radius: var(--r-md);
++  min-height: 1.75rem;
++  padding: 0.25rem 0.625rem;
++  font-size: var(--text-xs);
++  font-weight: var(--weight-medium);
++  transition: background-color 140ms var(--ease), color 140ms var(--ease), border-color 140ms var(--ease);
++}
++#root:has(.compact-layout) button:hover:not(:disabled) {
++  background: var(--ag-press);
++}
++#root:has(.compact-layout) button:focus {
++  outline: none;
++}
++#root:has(.compact-layout) button:focus-visible {
++  outline: 2px solid var(--ag-ring);
++  outline-offset: 1px;
++}
++#root:has(.compact-layout) .primary-action {
++  background: var(--ag-fg);
++  color: var(--ag-bg);
++  border-color: var(--ag-fg);
++  font-weight: var(--weight-semibold);
++}
++#root:has(.compact-layout) .primary-action:hover:not(:disabled) {
++  background: color-mix(in srgb, var(--ag-fg) 88%, var(--ag-bg));
++}
++
++#root:has(.compact-layout) input:not([type="checkbox"]) {
++  font-family: inherit;
++  background: var(--ag-field);
++  color: var(--ag-fg);
++  border: 1px solid var(--ag-border);
++  border-radius: var(--r-md);
++  padding: 0.375rem 0.5625rem;
++  font-size: var(--text-xs);
++  caret-color: var(--ag-primary);
++}
++#root:has(.compact-layout) input:not([type="checkbox"])::placeholder {
++  color: var(--ag-fg-muted);
++}
++#root:has(.compact-layout) input:not([type="checkbox"]):focus {
++  outline: none;
++  background: var(--ag-card);
++  border-color: color-mix(in srgb, var(--ag-primary) 55%, transparent);
++  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ag-primary) 14%, transparent);
++}
++#root:has(.compact-layout) input[type="checkbox"] {
++  accent-color: var(--ag-fg);
++}
++
++#root:has(.compact-layout) .tool-section {
++  border: 0;
++  border-radius: 0;
++  background: transparent;
++}
++#root:has(.compact-layout) .tool-section + .tool-section {
++  border-top: 1px solid var(--ag-line);
++}
++#root:has(.compact-layout) .tool-section-toggle {
++  min-height: 2.125rem;
++  padding: 0.4375rem 0.6875rem;
++  background: transparent;
++  border: 0;
++  border-radius: 0;
++  color: var(--ag-fg);
++  font-size: var(--text-xs);
++  font-weight: var(--weight-medium);
++}
++#root:has(.compact-layout) .tool-section-toggle:hover {
++  background: var(--ag-hover);
++}
++#root:has(.compact-layout) .tool-section-toggle:focus-visible {
++  outline: 2px solid var(--ag-ring);
++  outline-offset: -2px;
++}
++#root:has(.compact-layout) .tool-section-toggle svg {
++  width: 0.875rem;
++  height: 0.875rem;
++  color: var(--ag-fg-muted);
++}
++#root:has(.compact-layout) .tool-section-body {
++  border-top: 1px solid var(--ag-line);
++  background: var(--ag-card);
++  padding: 0.625rem 0.6875rem;
++}
++
++#root:has(.compact-layout) .panel-heading h2 {
++  font-size: var(--text-sm);
++  font-weight: var(--weight-semibold);
++  color: var(--ag-fg);
++}
++#root:has(.compact-layout) .location-status,
++#root:has(.compact-layout) .route-meta,
++#root:has(.compact-layout) .coordinate-grid label,
++#root:has(.compact-layout) .stacked-field,
++#root:has(.compact-layout) .foreground-card dt,
++#root:has(.compact-layout) .foreground-empty,
++#root:has(.compact-layout) .file-drop small,
++#root:has(.compact-layout) .session-list span,
++#root:has(.compact-layout) .ax-node code {
++  color: var(--ag-fg-muted);
++}
++#root:has(.compact-layout) .toggle-row,
++#root:has(.compact-layout) .session-list,
++#root:has(.compact-layout) .foreground-card dd {
++  color: var(--ag-fg-2);
++}
++#root:has(.compact-layout) .route-panel {
++  border-top-color: var(--ag-line);
++}
++
++#root:has(.compact-layout) .segmented-row,
++#root:has(.compact-layout) .font-scale-row {
++  gap: 2px;
++  padding: 2px;
++  border-radius: var(--r-lg);
++  background: var(--ag-fill);
++}
++#root:has(.compact-layout) .segmented-row button,
++#root:has(.compact-layout) .font-scale-row button {
++  background: transparent;
++  border: 0;
++  border-radius: var(--r-md);
++  color: var(--ag-fg-muted);
++  min-height: 1.625rem;
++  padding: 0.25rem 0.375rem;
++}
++#root:has(.compact-layout) .segmented-row button:hover:not(:disabled),
++#root:has(.compact-layout) .font-scale-row button:hover:not(:disabled) {
++  color: var(--ag-fg);
++  background: var(--ag-hover);
++}
++#root:has(.compact-layout) .segmented-row button.selected,
++#root:has(.compact-layout) .font-scale-row button.selected {
++  background: var(--ag-card);
++  color: var(--ag-fg);
++  font-weight: var(--weight-medium);
++  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
++}
++
++#root:has(.compact-layout) .device-row {
++  background: var(--ag-bg);
++  border: 1px solid var(--ag-line);
++  border-radius: var(--r-md);
++}
++#root:has(.compact-layout) .device-row.current {
++  border-color: color-mix(in srgb, var(--ag-success) 38%, var(--ag-line));
++  background: color-mix(in srgb, var(--ag-success) 6%, var(--ag-bg));
++}
++#root:has(.compact-layout) .device-row-main,
++#root:has(.compact-layout) .device-row-main:hover,
++#root:has(.compact-layout) .device-row-main:disabled {
++  background: transparent;
++  padding: 0;
++  min-height: 0;
++  opacity: 1;
++  cursor: default;
++}
++#root:has(.compact-layout) .device-row-main:not(:disabled) {
 +  cursor: pointer;
-+  color: #e5e5ea;
-+  background: #1c1c22;
-+  border: 1px solid #35353e;
-+  border-radius: 6px;
-+  padding: 5px 9px;
-+  font-size: 13px;
 +}
-+.android-tools > summary:hover,
-+.android-tools[open] > summary {
-+  background: #252530;
++#root:has(.compact-layout) .device-kind {
++  background: var(--ag-fill);
++  color: var(--ag-fg-muted);
++  border-radius: var(--r-md);
 +}
-+.android-tools > summary:focus-visible {
-+  outline: 2px solid #a8c2ff;
-+  outline-offset: 2px;
++#root:has(.compact-layout) .device-row .device-name,
++#root:has(.compact-layout) .device-row span,
++#root:has(.compact-layout) .foreground-title span {
++  color: var(--ag-fg);
 +}
-+.android-tools-content {
-+  box-sizing: border-box;
-+  position: absolute;
-+  inset-block-start: calc(100% + 5px);
-+  inset-inline-end: 0;
-+  width: min(100%, 29rem);
-+  max-height: min(72dvh, 42rem);
-+  overflow: auto;
-+  overscroll-behavior: contain;
-+  background: #17171e;
-+  border: 1px solid #35353e;
-+  border-radius: 8px;
-+  padding: 12px;
++#root:has(.compact-layout) .device-subtitle,
++#root:has(.compact-layout) .device-row code,
++#root:has(.compact-layout) .foreground-card dd,
++#root:has(.compact-layout) .ax-node code,
++#root:has(.compact-layout) .logcat-output {
++  font-family: var(--ag-mono);
 +}
-+.android-tools-content > section + section {
-+  margin-block-start: 12px;
++#root:has(.compact-layout) .device-subtitle,
++#root:has(.compact-layout) .device-row code {
++  color: var(--ag-fg-muted);
++}
++
++#root:has(.compact-layout) .device-empty,
++#root:has(.compact-layout) .ax-empty {
++  border-color: var(--ag-card-border);
++  color: var(--ag-fg-muted);
++  background: color-mix(in srgb, var(--ag-bg) 60%, transparent);
++}
++#root:has(.compact-layout) .ax-node {
++  background: transparent;
++  color: var(--ag-fg);
++}
++#root:has(.compact-layout) .ax-node:hover {
++  background: var(--ag-hover);
++}
++#root:has(.compact-layout) .ax-node.active {
++  border-color: color-mix(in srgb, var(--ag-primary) 50%, transparent);
++  background: color-mix(in srgb, var(--ag-primary) 12%, var(--ag-card));
++}
++#root:has(.compact-layout) .foreground-card {
++  background: var(--ag-bg);
++  border-color: var(--ag-card-border);
++}
++#root:has(.compact-layout) .file-drop {
++  border-color: var(--ag-card-border);
++  background: var(--ag-field);
++  color: var(--ag-fg);
++}
++#root:has(.compact-layout) .file-drop.active {
++  border-color: var(--ag-primary);
++  background: color-mix(in srgb, var(--ag-primary) 10%, var(--ag-card));
++}
++#root:has(.compact-layout) .map,
++#root:has(.compact-layout) .logcat-output {
++  border-color: var(--ag-card-border);
++  background: var(--ag-field);
++  color: var(--ag-fg);
++}
++
++@media (max-width: 300px) {
++  #root:has(.compact-layout) .hw-label {
++    display: none;
++  }
++  #root:has(.compact-layout) > footer button {
++    padding-inline: 0.5rem;
++  }
 +}

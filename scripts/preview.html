@@ -6,157 +6,945 @@
 <style>
   :root {
     color-scheme: light dark;
-    font: 0.875rem/1.45 system-ui, sans-serif;
-    --surface: #f8f9fc;
-    --raised: #edf0f6;
-    --text: #202633;
-    --muted: color-mix(in srgb, var(--text) 75%, var(--surface));
-    --line: #d7dce6;
-    --accent: #234caa;
-    --running: #136b47;
-    --danger: #982e40;
+    --ag-bg-fallback: #f7f7f8;
+    --ag-card-fallback: #ffffff;
+    --ag-muted-fallback: #eff0f1;
+    --ag-fg-fallback: #1d1f21;
+    --ag-fg-2-fallback: #3d4348;
+    --ag-fg-muted-fallback: #555e66;
+    --ag-border-fallback: rgba(0, 0, 0, 0.08);
+    --ag-card-border-fallback: rgba(0, 0, 0, 0.11);
+    --ag-primary-fallback: #007acc;
+    --ag-error-fallback: #c63737;
+    --ag-success-fallback: #4d853b;
+    --ag-warning-fallback: #9c7b16;
+    --hover-mix: 5%;
+    --press-mix: 9%;
+    --fill-mix: 6.5%;
+    --field-mix: 4.8%;
+
+    --ag-bg: var(--color-background-primary, var(--background, var(--ag-bg-fallback)));
+    --ag-card: var(--color-background-secondary, var(--card, var(--ag-card-fallback)));
+    --ag-muted: var(--color-background-tertiary, var(--muted, var(--ag-muted-fallback)));
+    --ag-fg: var(--color-text-primary, var(--foreground, var(--ag-fg-fallback)));
+    --ag-fg-2: var(--color-text-secondary, var(--secondary-foreground, var(--ag-fg-2-fallback)));
+    --ag-fg-muted: var(--color-text-tertiary, var(--muted-foreground, var(--ag-fg-muted-fallback)));
+    --ag-border: var(--color-border-secondary, var(--border, var(--ag-border-fallback)));
+    --ag-card-border: var(--color-border-primary, var(--card-border, var(--ag-card-border-fallback)));
+    --ag-primary: var(--color-ring-primary, var(--primary, var(--ag-primary-fallback)));
+    --ag-error: var(--color-text-danger, var(--error, var(--ag-error-fallback)));
+    --ag-success: var(--color-text-success, var(--success, var(--ag-success-fallback)));
+    --ag-warning: var(--color-text-warning, var(--warning, var(--ag-warning-fallback)));
+
+    --ag-hover: color-mix(in srgb, var(--ag-fg) var(--hover-mix), transparent);
+    --ag-press: color-mix(in srgb, var(--ag-fg) var(--press-mix), transparent);
+    --ag-line: color-mix(in srgb, var(--ag-fg) 8%, transparent);
+    --ag-fill: color-mix(in srgb, var(--ag-fg) var(--fill-mix), transparent);
+    --ag-field: color-mix(in srgb, var(--ag-fg) var(--field-mix), transparent);
+    --ag-ring: var(--color-ring-primary, color-mix(in srgb, var(--ag-primary) 72%, transparent));
+
+    --ag-font: var(--font-sans, var(--font-family, "Google Sans Flex", "Google Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif));
+    --ag-mono: var(--font-mono, var(--editor-font-family, "Google Sans Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace));
+    --text-2xs: var(--font-text-xs-size, 0.6875rem);
+    --text-xs: var(--font-text-xs-size, 0.75rem);
+    --text-sm: var(--font-text-sm-size, 0.8125rem);
+    --text-base: var(--font-text-md-size, 0.875rem);
+    --weight-normal: var(--font-weight-normal, 400);
+    --weight-medium: var(--font-weight-medium, 500);
+    --weight-semibold: var(--font-weight-semibold, 600);
+
+    --r-sm: 4px;
+    --r-md: 6px;
+    --r-lg: 8px;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
   }
+
   @media (prefers-color-scheme: dark) {
-    :root {
-      --surface: #17191f;
-      --raised: #222630;
-      --text: #edf0f6;
-      --line: #383f4d;
-      --accent: #a8c2ff;
-      --running: #83d3aa;
-      --danger: #ffa9b6;
+    :root:not([data-theme="light"]) {
+      --ag-bg-fallback: #131313;
+      --ag-card-fallback: #1a1a1c;
+      --ag-muted-fallback: #202023;
+      --ag-fg-fallback: #fafafa;
+      --ag-fg-2-fallback: #d4d4d8;
+      --ag-fg-muted-fallback: #9e9ea6;
+      --ag-border-fallback: rgba(255, 255, 255, 0.08);
+      --ag-card-border-fallback: rgba(255, 255, 255, 0.11);
+      --ag-primary-fallback: #4da3ff;
+      --ag-error-fallback: #f06868;
+      --ag-success-fallback: #7aae66;
+      --ag-warning-fallback: #d4b844;
+      --hover-mix: 6.5%;
+      --press-mix: 11%;
+      --fill-mix: 8.5%;
+      --field-mix: 7%;
     }
   }
-  * { box-sizing: border-box; }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --ag-bg-fallback: #131313;
+    --ag-card-fallback: #1a1a1c;
+    --ag-muted-fallback: #202023;
+    --ag-fg-fallback: #fafafa;
+    --ag-fg-2-fallback: #d4d4d8;
+    --ag-fg-muted-fallback: #9e9ea6;
+    --ag-border-fallback: rgba(255, 255, 255, 0.08);
+    --ag-card-border-fallback: rgba(255, 255, 255, 0.11);
+    --ag-primary-fallback: #4da3ff;
+    --ag-error-fallback: #f06868;
+    --ag-success-fallback: #7aae66;
+    --ag-warning-fallback: #d4b844;
+    --hover-mix: 6.5%;
+    --press-mix: 11%;
+    --fill-mix: 8.5%;
+    --field-mix: 7%;
+  }
+
+  :root[data-theme="light"] {
+    color-scheme: light;
+  }
+
+  * {
+    box-sizing: border-box;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--ag-fg) 22%, transparent) transparent;
+  }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--ag-fg) 20%, transparent);
+    border: 3px solid transparent;
+    background-clip: padding-box;
+    border-radius: 10px;
+  }
+  ::-webkit-scrollbar-track { background: transparent; }
+
   [hidden] { display: none !important; }
+  ::selection { background: color-mix(in srgb, var(--ag-primary) 28%, transparent); }
+
+  html { background: var(--ag-bg); }
   body {
     margin: 0;
     height: 100vh;
-    display: grid;
-    grid-template-rows: auto auto minmax(0, 1fr);
-    background: var(--surface);
-    color: var(--text);
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--ag-bg);
+    color: var(--ag-fg);
+    font-family: var(--ag-font);
+    font-size: var(--text-base);
+    font-weight: var(--weight-normal);
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  button, input {
+    font: inherit;
+    color: inherit;
   }
   button {
-    font: inherit;
-    color: var(--accent);
     border: 1px solid transparent;
-    border-radius: 6px;
+    border-radius: var(--r-md);
     background: transparent;
     cursor: pointer;
-    padding: 5px 9px;
-    min-height: 34px;
-  }
-  button:hover:not(:disabled) { background: var(--raised); }
-  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  button:active:not(:disabled) { border-color: var(--accent); }
-  button:disabled { color: var(--muted); cursor: default; }
-  .picker {
-    grid-row: 3;
-    overflow: auto;
-    width: 100%;
-    max-width: 660px;
-    margin-inline: auto;
-    padding: 16px 18px 24px;
-  }
-  .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-  h1 { margin: 0; font-size: 1.14rem; font-weight: 650; }
-  h2 { margin: 20px 0 7px; font-size: 0.79rem; font-weight: 650; color: var(--muted); }
-  ul { list-style: none; margin: 0; padding: 0; border-block: 1px solid var(--line); }
-  li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 9px 0; align-items: center; }
-  li + li { border-top: 1px solid var(--line); }
-  .device-name { display: block; font-weight: 600; overflow-wrap: anywhere; }
-  .metadata, .empty, #loading { color: var(--muted); font-size: 0.82rem; }
-  .running { color: var(--running); }
-  .open { border-color: var(--line); min-width: 64px; }
-  .empty { margin: 0; }
-  .feedback { grid-row: 2; }
-  .feedback p { margin: 8px 18px 0; overflow-wrap: anywhere; }
-  #error { font-size: 0.82rem; color: var(--danger); }
-  .views {
-    grid-row: 1;
-    display: flex;
+    padding: 0 0.625rem;
+    min-height: 1.75rem;
+    display: inline-flex;
     align-items: center;
-    gap: 4px;
-    padding: 4px 8px;
-    border-bottom: 1px solid var(--line);
+    justify-content: center;
+    gap: 0.375rem;
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+    transition: background-color 140ms var(--ease), color 140ms var(--ease), border-color 140ms var(--ease);
   }
-  .views > button { flex-shrink: 0; }
-  .views button { white-space: nowrap; }
-  .views button[aria-current="true"] { font-weight: 650; }
+  button:focus, input:focus { outline: none; }
+  button:focus-visible {
+    outline: 2px solid var(--ag-ring);
+    outline-offset: 1px;
+  }
+  button:disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+
+  .icon {
+    width: 0.875rem;
+    height: 0.875rem;
+    flex: none;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Aux Pane Underline Tab Bar                                         */
+  /* ------------------------------------------------------------------ */
+  .views {
+    flex: none;
+    display: flex;
+    align-items: stretch;
+    gap: 0.5rem;
+    padding: 0 0.75rem;
+    min-height: 2.25rem;
+    background: var(--ag-bg);
+    border-bottom: 1px solid var(--ag-line);
+  }
+  .views-divider {
+    flex: none;
+    width: 1px;
+    height: 0.875rem;
+    align-self: center;
+    background: var(--ag-line);
+  }
+  .nav-tab {
+    position: relative;
+    flex: none;
+    min-height: 2.25rem;
+    padding: 0 0.25rem;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--ag-fg-muted);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    white-space: nowrap;
+  }
+  .nav-tab::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 2px;
+    border-radius: 2px 2px 0 0;
+    background: transparent;
+    transition: background-color 140ms var(--ease);
+  }
+  .nav-tab:hover:not(:disabled) {
+    color: var(--ag-fg);
+    background: transparent;
+  }
+  .nav-tab[aria-current="true"] {
+    color: var(--ag-fg);
+  }
+  .nav-tab[aria-current="true"]::after {
+    background: var(--ag-fg);
+  }
+  .nav-tab:focus-visible {
+    outline-offset: -2px;
+    border-radius: var(--r-sm);
+  }
+  .tab-count {
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-normal);
+    font-variant-numeric: tabular-nums;
+    color: var(--ag-fg-muted);
+    background: var(--ag-fill);
+    padding: 0.0625rem 0.375rem;
+    border-radius: 999px;
+    line-height: 1.3;
+  }
+
   .tabs {
     display: flex;
+    align-items: stretch;
     min-width: 0;
-    gap: 4px;
+    flex: 1 1 auto;
+    gap: 0.75rem;
     overflow-x: auto;
-    scrollbar-width: thin;
-    padding: 3px;
+    scrollbar-width: none;
   }
+  .tabs::-webkit-scrollbar { display: none; }
+
   .device-tab {
-    display: flex;
-    flex: 0 0 auto;
+    position: relative;
+    display: inline-flex;
+    flex: none;
     align-items: center;
-    border-radius: 6px;
-    gap: 2px;
+    gap: 0.125rem;
+    min-height: 2.25rem;
   }
-  .device-tab:has([aria-current="true"]) { background: var(--raised); }
-  .tab-name { max-width: 10rem; overflow: hidden; text-overflow: ellipsis; }
+  .device-tab::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 2px;
+    border-radius: 2px 2px 0 0;
+    background: transparent;
+    transition: background-color 140ms var(--ease);
+    pointer-events: none;
+  }
+  .device-tab:has([aria-current="true"])::after {
+    background: var(--ag-fg);
+  }
+  .tab-name {
+    border: 0;
+    border-radius: var(--r-sm);
+    padding: 0 0.25rem;
+    min-height: 1.75rem;
+    color: var(--ag-fg-muted);
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    max-width: 11rem;
+  }
+  .tab-name-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tab-name:hover:not(:disabled) {
+    color: var(--ag-fg);
+    background: transparent;
+  }
+  .tab-name[aria-current="true"] {
+    color: var(--ag-fg);
+  }
+  .tab-name:focus-visible {
+    outline-offset: -2px;
+  }
   .tab-close {
-    color: var(--muted);
-    padding: 4px 7px;
-    margin-inline-end: 2px;
+    width: 1.375rem;
+    height: 1.375rem;
+    min-height: 1.375rem;
+    padding: 0;
+    border: 0;
+    border-radius: var(--r-sm);
+    color: var(--ag-fg-muted);
   }
-  .tab-close:hover:not(:disabled) { border-color: var(--line); }
-  .tab-close svg { display: block; }
-  .viewer { grid-row: 3; min-height: 0; }
-  .viewer iframe { display: block; width: 100%; height: 100%; border: 0; background: var(--surface); }
-  @media (max-width: 290px) {
-    .picker { padding-inline: 12px; }
-    .open { min-width: 0; }
+  .tab-close:hover:not(:disabled) {
+    background: var(--ag-hover);
+    color: var(--ag-fg);
+  }
+  .tab-close:active:not(:disabled) {
+    background: var(--ag-press);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Error Banner                                                       */
+  /* ------------------------------------------------------------------ */
+  .alert-wrap {
+    margin: 0.25rem 0 0.75rem;
+  }
+  .alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.5625rem 0.75rem;
+    border-radius: var(--r-lg);
+    border: 1px solid color-mix(in srgb, var(--ag-error) 32%, transparent);
+    background: color-mix(in srgb, var(--ag-error) 8%, var(--ag-card));
+    color: var(--ag-fg);
+    font-size: var(--text-xs);
+    line-height: 1.45;
+  }
+  .alert-icon {
+    color: var(--ag-error);
+    margin-top: 0.125rem;
+  }
+  .alert-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+  .alert-dismiss {
+    flex: none;
+    width: 1.375rem;
+    height: 1.375rem;
+    min-height: 1.375rem;
+    padding: 0;
+    color: var(--ag-fg-muted);
+  }
+  .alert-dismiss:hover:not(:disabled) {
+    background: var(--ag-hover);
+    color: var(--ag-fg);
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Picker                                                             */
+  /* ------------------------------------------------------------------ */
+  .picker {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    width: 100%;
+    padding: 0 1rem 1.75rem;
+  }
+  .picker-inner {
+    width: 100%;
+    max-width: 44rem;
+    margin-inline: auto;
+  }
+  .picker-header {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--ag-bg);
+    padding: 0.875rem 0 0.625rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+  }
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+  .title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    min-width: 0;
+  }
+  h1 {
+    margin: 0;
+    font-size: var(--text-base);
+    font-weight: var(--weight-semibold);
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+  }
+  .activity {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-width: 0;
+    font-size: var(--text-xs);
+    color: var(--ag-fg-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ghost-btn {
+    color: var(--ag-fg-muted);
+    padding: 0 0.5rem;
+    flex: none;
+  }
+  .ghost-btn:hover:not(:disabled) {
+    background: var(--ag-hover);
+    color: var(--ag-fg);
+  }
+  .ghost-btn:active:not(:disabled) {
+    background: var(--ag-press);
+  }
+  .ghost-btn[data-spinning="true"] .icon {
+    animation: spin 0.85s linear infinite;
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* Search / Filter Field */
+  .search {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2rem;
+    padding: 0 0.625rem;
+    border-radius: var(--r-lg);
+    background: var(--ag-field);
+    border: 1px solid transparent;
+    color: var(--ag-fg-muted);
+    transition: border-color 140ms var(--ease), background-color 140ms var(--ease), box-shadow 140ms var(--ease);
+  }
+  .search:focus-within {
+    background: var(--ag-card);
+    border-color: color-mix(in srgb, var(--ag-primary) 55%, transparent);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--ag-primary) 14%, transparent);
+    color: var(--ag-fg);
+  }
+  .search input {
+    flex: 1 1 auto;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    padding: 0.25rem 0;
+    font-size: var(--text-sm);
+    color: var(--ag-fg);
+    caret-color: var(--ag-primary);
+  }
+  .search input::placeholder {
+    color: var(--ag-fg-muted);
+  }
+  .search input::-webkit-search-cancel-button {
+    display: none;
+  }
+  .search-kbd {
+    flex: none;
+    font-family: var(--ag-mono);
+    font-size: var(--text-2xs);
+    color: var(--ag-fg-muted);
+    background: var(--ag-fill);
+    border-radius: var(--r-sm);
+    padding: 0.0625rem 0.3125rem;
+    line-height: 1.3;
+    pointer-events: none;
+  }
+  .search:focus-within .search-kbd {
+    display: none;
+  }
+  .search-clear {
+    flex: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    min-height: 1.25rem;
+    padding: 0;
+    border-radius: var(--r-sm);
+    color: var(--ag-fg-muted);
+  }
+  .search-clear:hover:not(:disabled) {
+    background: var(--ag-hover);
+    color: var(--ag-fg);
+  }
+
+  /* Platform Sections & Cards */
+  .platform-group {
+    margin-top: 1.25rem;
+  }
+  .platform-group:first-child {
+    margin-top: 0.375rem;
+  }
+  .group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.4375rem;
+    padding-inline: 0.125rem;
+  }
+  .group-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin: 0;
+    font-size: var(--text-xs);
+    font-weight: var(--weight-semibold);
+    color: var(--ag-fg-2);
+  }
+  .group-title .icon {
+    color: var(--ag-fg-muted);
+  }
+  .group-count {
+    font-size: var(--text-xs);
+    color: var(--ag-fg-muted);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .group-card {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    background: var(--ag-card);
+    border: 1px solid var(--ag-card-border);
+    border-radius: var(--r-lg);
+    overflow: hidden;
+  }
+  .device-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0.625rem;
+    padding: 0.5625rem 0.75rem;
+    align-items: center;
+    transition: background-color 120ms var(--ease);
+  }
+  .device-row + .device-row {
+    border-top: 1px solid var(--ag-line);
+  }
+  .device-row:hover {
+    background: color-mix(in srgb, var(--ag-fg) 2.2%, transparent);
+  }
+
+  .device-glyph {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: var(--r-md);
+    background: var(--ag-fill);
+    color: var(--ag-fg-muted);
+    display: grid;
+    place-items: center;
+    flex: none;
+  }
+  .device-glyph[data-running="true"] {
+    background: color-mix(in srgb, var(--ag-fg) 9%, transparent);
+    color: var(--ag-fg);
+  }
+
+  .device-info {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+  }
+  .device-title-row {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+  .device-name {
+    font-size: var(--text-sm);
+    font-weight: var(--weight-medium);
+    color: var(--ag-fg);
+    overflow-wrap: anywhere;
+    line-height: 1.35;
+  }
+  .tab-badge {
+    font-size: var(--text-2xs);
+    font-weight: var(--weight-medium);
+    color: var(--ag-fg-2);
+    background: var(--ag-fill);
+    padding: 0.0625rem 0.375rem;
+    border-radius: var(--r-sm);
+    line-height: 1.3;
+    flex: none;
+  }
+
+  .metadata {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    color: var(--ag-fg-muted);
+    font-size: var(--text-xs);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.35;
+  }
+  .state-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3125rem;
+  }
+  .state-chip[data-state="running"] {
+    color: var(--ag-fg-2);
+    font-weight: var(--weight-medium);
+  }
+  .state-chip[data-state="starting"] {
+    color: var(--ag-warning);
+  }
+
+  .status-dot {
+    position: relative;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex: none;
+    background: color-mix(in srgb, var(--ag-fg-muted) 48%, transparent);
+  }
+  .status-dot[data-state="running"] {
+    background: var(--ag-success);
+  }
+  .status-dot[data-state="running"]::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: inherit;
+    opacity: 0.45;
+    animation: pulse 2.4s var(--ease) infinite;
+  }
+  .status-dot[data-state="starting"] {
+    background: var(--ag-warning);
+  }
+  @keyframes pulse {
+    0% { transform: scale(1); opacity: 0.45; }
+    70%, 100% { transform: scale(2.4); opacity: 0; }
+  }
+
+  /* Row Action Buttons */
+  .open {
+    min-width: 4.125rem;
+    padding: 0 0.6875rem;
+    min-height: 1.75rem;
+    border-radius: var(--r-md);
+    font-size: var(--text-xs);
+    font-weight: var(--weight-medium);
+  }
+  .open[data-variant="primary"] {
+    background: var(--ag-fill);
+    color: var(--ag-fg);
+    border-color: transparent;
+  }
+  .open[data-variant="primary"]:hover:not(:disabled) {
+    background: var(--ag-press);
+  }
+  .open[data-variant="secondary"] {
+    background: transparent;
+    color: var(--ag-fg-2);
+    border-color: var(--ag-card-border);
+  }
+  .open[data-variant="secondary"]:hover:not(:disabled) {
+    background: var(--ag-hover);
+    color: var(--ag-fg);
+    border-color: color-mix(in srgb, var(--ag-fg) 18%, transparent);
+  }
+  .open:active:not(:disabled) {
+    background: var(--ag-press);
+  }
+
+  /* Empty & Skeleton States */
+  .empty-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    padding: 1.125rem 0.875rem;
+    border: 1px dashed var(--ag-card-border);
+    border-radius: var(--r-lg);
+    background: color-mix(in srgb, var(--ag-card) 55%, transparent);
+    text-align: center;
+  }
+  .empty-card .icon {
+    width: 1rem;
+    height: 1rem;
+    color: var(--ag-fg-muted);
+  }
+  .empty {
+    margin: 0;
+    color: var(--ag-fg-muted);
+    font-size: var(--text-xs);
+    max-width: 34ch;
+  }
+  .empty-action {
+    margin-top: 0.25rem;
+    background: var(--ag-fill);
+    color: var(--ag-fg);
+  }
+  .empty-action:hover:not(:disabled) {
+    background: var(--ag-press);
+  }
+
+  .skeleton-bar {
+    border-radius: var(--r-sm);
+    background: linear-gradient(
+      90deg,
+      var(--ag-fill) 25%,
+      color-mix(in srgb, var(--ag-fg) 11%, transparent) 50%,
+      var(--ag-fill) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+  .skeleton-name { width: 8.5rem; height: 0.8125rem; }
+  .skeleton-meta { width: 5.5rem; height: 0.6875rem; margin-top: 0.25rem; }
+  .skeleton-btn { width: 3.75rem; height: 1.625rem; border-radius: var(--r-md); }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* ------------------------------------------------------------------ */
+  /* Active Device Stream Stage                                         */
+  /* ------------------------------------------------------------------ */
+  .viewer {
+    position: relative;
+    flex: 1 1 0%;
+    min-height: 0;
+    background: var(--ag-bg);
+  }
+  .viewer iframe {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: var(--ag-bg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  @media (max-width: 320px) {
+    .picker { padding-inline: 0.75rem; }
+    .device-glyph { display: none; }
+    .device-row { grid-template-columns: minmax(0, 1fr) auto; padding-inline: 0.625rem; }
+    .open { min-width: 0; padding-inline: 0.5625rem; }
+    .refresh-label { display: none; }
   }
 </style>
+
 <nav id="views" class="views" aria-label="Device views" hidden>
-  <button id="back" type="button">All devices</button>
+  <button id="back" class="nav-tab" type="button">
+    <svg class="icon" viewBox="0 0 16 16" aria-hidden="true">
+      <rect x="2.25" y="2.25" width="4.75" height="4.75" rx="1.2" />
+      <rect x="9" y="2.25" width="4.75" height="4.75" rx="1.2" />
+      <rect x="2.25" y="9" width="4.75" height="4.75" rx="1.2" />
+      <rect x="9" y="9" width="4.75" height="4.75" rx="1.2" />
+    </svg>
+    <span>All devices</span>
+    <span id="open-count" class="tab-count" hidden></span>
+  </button>
+  <span class="views-divider" aria-hidden="true"></span>
   <div id="tabs" class="tabs"></div>
 </nav>
-<div class="feedback">
-  <p id="loading" role="status">Finding local devices…</p>
-  <p id="error" role="alert" hidden></p>
-</div>
+
 <main id="picker" class="picker">
-  <header class="toolbar">
-    <h1>Devices</h1>
-    <button id="refresh" type="button" disabled>Refresh devices</button>
-  </header>
-  <div id="groups"></div>
+  <div class="picker-inner">
+    <header class="picker-header">
+      <div class="toolbar">
+        <div class="title-group">
+          <h1>Devices</h1>
+          <span id="loading" class="activity" role="status" aria-live="polite">
+            <span class="status-dot" data-state="starting" aria-hidden="true"></span>
+            <span id="loading-text">Finding local devices…</span>
+          </span>
+        </div>
+        <button id="refresh" class="ghost-btn" type="button" disabled aria-label="Refresh devices" title="Refresh devices">
+          <svg class="icon" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M13.25 8a5.25 5.25 0 1 1-1.38-3.55M13.25 2.75v2.5h-2.5" />
+          </svg>
+          <span class="refresh-label">Refresh</span>
+        </button>
+      </div>
+      <div id="search-wrap" class="search" hidden>
+        <svg class="icon" viewBox="0 0 16 16" aria-hidden="true">
+          <circle cx="7.25" cy="7.25" r="4.5" />
+          <path d="m10.6 10.6 2.9 2.9" />
+        </svg>
+        <input id="filter" type="search" placeholder="Filter simulators and emulators…" aria-label="Filter devices" autocomplete="off" spellcheck="false">
+        <span id="search-kbd" class="search-kbd" aria-hidden="true">/</span>
+        <button id="clear-filter" class="search-clear" type="button" aria-label="Clear filter" hidden>
+          <svg class="icon" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="m4.5 4.5 7 7m0-7-7 7" />
+          </svg>
+        </button>
+      </div>
+    </header>
+    <div id="error-wrap" class="alert-wrap" hidden>
+      <div class="alert" role="alert">
+        <svg class="icon alert-icon" viewBox="0 0 16 16" aria-hidden="true">
+          <circle cx="8" cy="8" r="6" />
+          <path d="M8 5.25v3.25M8 10.75h.01" />
+        </svg>
+        <p id="error" class="alert-text"></p>
+        <button id="dismiss-error" class="alert-dismiss" type="button" aria-label="Dismiss error">
+          <svg class="icon" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="m4.5 4.5 7 7m0-7-7 7" />
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div id="groups"></div>
+  </div>
 </main>
+
 <section id="viewer" class="viewer" aria-label="Device preview" hidden>
   <iframe id="stream" title="Device preview"></iframe>
 </section>
+
 <script>
   const picker = document.querySelector("#picker");
   const viewer = document.querySelector("#viewer");
   const refresh = document.querySelector("#refresh");
   const back = document.querySelector("#back");
+  const openCount = document.querySelector("#open-count");
   const views = document.querySelector("#views");
   const tabs = document.querySelector("#tabs");
   const openDevices = new Map();
   const frame = document.querySelector("#stream");
   const loading = document.querySelector("#loading");
+  const loadingText = document.querySelector("#loading-text");
   const groups = document.querySelector("#groups");
+  const errorWrap = document.querySelector("#error-wrap");
   const alertMessage = document.querySelector("#error");
+  const dismissError = document.querySelector("#dismiss-error");
+  const searchWrap = document.querySelector("#search-wrap");
+  const filterInput = document.querySelector("#filter");
+  const clearFilter = document.querySelector("#clear-filter");
+  const searchKbd = document.querySelector("#search-kbd");
   const requests = new Map();
+
+  const ICONS = {
+    ios: '<svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="1.75" width="8" height="12.5" rx="1.8"/><path d="M6.75 3.5h2.5"/></svg>',
+    android: '<svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M3.25 11.5h9.5v-.75a4.75 4.75 0 0 0-9.5 0v.75ZM5.4 6.05 4.15 4.15M10.6 6.05l1.25-1.9"/><circle cx="6.25" cy="9.15" r=".65" fill="currentColor" stroke="none"/><circle cx="9.75" cy="9.15" r=".65" fill="currentColor" stroke="none"/></svg>',
+    device: '<svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><rect x="4.25" y="1.75" width="7.5" height="12.5" rx="1.75"/><path d="M7 12.25h2"/></svg>',
+    spinner: '<svg class="icon" style="animation:spin .8s linear infinite" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="5.5" stroke-opacity="0.25"/><path d="M13.5 8a5.5 5.5 0 0 0-5.5-5.5"/></svg>',
+    close: '<svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="m4.5 4.5 7 7m0-7-7 7"/></svg>'
+  };
+
   const platforms = [
-    { id: "ios", label: "iOS simulators", empty: "No simulators found. Add one in Xcode." },
-    { id: "android", label: "Android emulators", empty: "No emulators found. Add one in Android Studio." }
+    { id: "ios", label: "iOS simulators", noun: "iOS simulators", empty: "No simulators found. Add one in Xcode." },
+    { id: "android", label: "Android emulators", noun: "Android emulators", empty: "No emulators found. Add one in Android Studio." }
   ];
   const broadcast = (message) => parent.postMessage({ jsonrpc: "2.0", ...message }, "*");
   const stateLabels = { running: "Running", starting: "Starting", stopped: "Stopped" };
+
   let requestId = 1;
   let connected = false;
   let listing;
   let busy = "";
   let activeDevice = "";
+  let activeOrigin = "";
+  let filterQuery = "";
+  let hostPinnedTheme = "";
+  let currentTheme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  const currentVariables = {};
+
+  function syncStreamTheme() {
+    if (!activeOrigin || viewer.hidden || !frame.contentWindow) return;
+    try {
+      frame.contentWindow.postMessage({
+        type: "ag-theme",
+        theme: currentTheme,
+        variables: currentVariables
+      }, activeOrigin);
+    } catch {
+      // Ignore cross-frame timing errors before stream page mounts.
+    }
+  }
+
+  function applyHostContext(ctx) {
+    if (!ctx || typeof ctx !== "object") return;
+    if (ctx.theme === "light" || ctx.theme === "dark") {
+      hostPinnedTheme = ctx.theme;
+      currentTheme = ctx.theme;
+      document.documentElement.dataset.theme = currentTheme;
+      document.documentElement.style.colorScheme = currentTheme;
+    }
+    const vars = ctx.styles?.variables;
+    if (vars && typeof vars === "object") {
+      for (const [key, value] of Object.entries(vars)) {
+        if (typeof key === "string" && key.startsWith("--") && typeof value === "string") {
+          currentVariables[key] = value;
+          document.documentElement.style.setProperty(key, value);
+        }
+      }
+    }
+    const fontCss = ctx.styles?.css?.fonts;
+    if (typeof fontCss === "string") {
+      let styleEl = document.querySelector("#ag-host-fonts");
+      if (!styleEl) {
+        styleEl = document.createElement("style");
+        styleEl.id = "ag-host-fonts";
+        document.head.append(styleEl);
+      }
+      styleEl.textContent = fontCss;
+    }
+    syncStreamTheme();
+  }
+
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (event) => {
+    if (hostPinnedTheme) return;
+    currentTheme = event.matches ? "dark" : "light";
+    syncStreamTheme();
+  });
+
+  frame.addEventListener("load", () => {
+    syncStreamTheme();
+  });
 
   function parse(result) {
     const text = result?.content?.[0]?.text;
@@ -178,32 +966,110 @@
 
   function showError(message) {
     alertMessage.textContent = message;
-    alertMessage.hidden = !message;
+    errorWrap.hidden = !message;
+  }
+
+  function makeSkeletonSection(platform) {
+    const section = document.createElement("section");
+    section.className = "platform-group";
+    const header = document.createElement("div");
+    header.className = "group-header";
+    const title = document.createElement("h2");
+    title.className = "group-title";
+    title.innerHTML = ICONS[platform.id];
+    const label = document.createElement("span");
+    label.textContent = platform.label;
+    title.append(label);
+    header.append(title);
+    section.append(header);
+
+    const list = document.createElement("ul");
+    list.className = "group-card";
+    list.setAttribute("aria-hidden", "true");
+    for (let i = 0; i < 2; i++) {
+      const row = document.createElement("li");
+      row.className = "device-row";
+      const glyph = document.createElement("div");
+      glyph.className = "device-glyph skeleton-bar";
+      const info = document.createElement("div");
+      info.className = "device-info";
+      const sName = document.createElement("div");
+      sName.className = "skeleton-bar skeleton-name";
+      const sMeta = document.createElement("div");
+      sMeta.className = "skeleton-bar skeleton-meta";
+      info.append(sName, sMeta);
+      const sBtn = document.createElement("div");
+      sBtn.className = "skeleton-bar skeleton-btn";
+      row.append(glyph, info, sBtn);
+      list.append(row);
+    }
+    section.append(list);
+    return section;
   }
 
   function makeRow(device) {
     const row = document.createElement("li");
+    row.className = "device-row";
+
+    const glyph = document.createElement("div");
+    glyph.className = "device-glyph";
+    if (device.state === "running") glyph.dataset.running = "true";
+    glyph.innerHTML = ICONS[device.platform] || ICONS.device;
+
     const info = document.createElement("div");
+    info.className = "device-info";
+
+    const titleRow = document.createElement("div");
+    titleRow.className = "device-title-row";
     const name = document.createElement("span");
     name.className = "device-name";
     name.textContent = device.name;
+    titleRow.append(name);
+    if (openDevices.has(device.id)) {
+      const badge = document.createElement("span");
+      badge.className = "tab-badge";
+      badge.textContent = "Tabbed";
+      titleRow.append(badge);
+    }
+
     const metadata = document.createElement("span");
     metadata.className = "metadata";
-    const state = document.createElement("span");
-    if (device.state === "running") state.className = "running";
-    state.textContent = stateLabels[device.state];
-    metadata.append(device.detail + " · ", state);
-    info.append(name, metadata);
+    const stateChip = document.createElement("span");
+    stateChip.className = "state-chip";
+    stateChip.dataset.state = device.state;
+    const dot = document.createElement("span");
+    dot.className = "status-dot";
+    dot.dataset.state = device.state;
+    dot.setAttribute("aria-hidden", "true");
+    stateChip.append(dot, stateLabels[device.state] || device.state);
+    const sep = document.createElement("span");
+    sep.setAttribute("aria-hidden", "true");
+    sep.textContent = "·";
+    const detail = document.createElement("span");
+    detail.textContent = device.detail;
+    metadata.append(stateChip, sep, detail);
+
+    info.append(titleRow, metadata);
+
     const open = document.createElement("button");
     open.type = "button";
     open.className = "open";
     open.dataset.device = device.id;
     const action = device.state === "stopped" ? "Start" : device.state === "starting" ? "Connect" : "Open";
+    open.dataset.variant = device.state === "stopped" ? "secondary" : "primary";
     open.setAttribute("aria-label", action + " " + device.name);
-    open.textContent = busy === device.id ? (action === "Start" ? "Starting…" : "Opening…") : action;
+    if (busy === device.id) {
+      open.innerHTML = ICONS.spinner;
+      const lbl = document.createElement("span");
+      lbl.textContent = action === "Start" ? "Starting…" : "Opening…";
+      open.append(lbl);
+    } else {
+      open.textContent = action;
+    }
     open.disabled = Boolean(busy);
     open.addEventListener("click", () => select(device));
-    row.append(info, open);
+
+    row.append(glyph, info, open);
     return row;
   }
 
@@ -211,6 +1077,9 @@
     views.hidden = openDevices.size === 0;
     back.disabled = Boolean(busy);
     back.setAttribute("aria-current", String(!activeDevice));
+    openCount.textContent = String(openDevices.size);
+    openCount.hidden = openDevices.size === 0;
+
     let focus;
     const elements = [...openDevices.values()].map((device) => {
       const item = document.createElement("div");
@@ -219,10 +1088,19 @@
       const show = document.createElement("button");
       show.type = "button";
       show.className = "tab-name";
-      show.textContent = device.name;
       show.title = device.name;
       show.setAttribute("aria-current", String(activeDevice === device.id));
       show.disabled = Boolean(busy);
+
+      const dot = document.createElement("span");
+      dot.className = "status-dot";
+      dot.dataset.state = "running";
+      dot.setAttribute("aria-hidden", "true");
+      const label = document.createElement("span");
+      label.className = "tab-name-label";
+      label.textContent = device.name;
+      show.append(dot, label);
+
       show.addEventListener("click", () => {
         if (activeDevice !== device.id) void select(device, true);
       });
@@ -234,13 +1112,14 @@
       close.setAttribute("aria-label", "Close " + device.name + " tab");
       close.title = "Close " + device.name + " tab";
       close.disabled = Boolean(busy);
-      close.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d="m2.5 2.5 7 7m0-7-7 7" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
+      close.innerHTML = ICONS.close;
       close.addEventListener("click", () => {
         openDevices.delete(device.id);
         if (activeDevice === device.id) {
           showPicker(device.id);
         } else {
           drawTabs(activeDevice);
+          draw();
           if (!activeDevice) (views.hidden ? refresh : back).focus();
         }
       });
@@ -252,27 +1131,88 @@
     focus?.focus();
   }
 
+  function matchesFilter(device, needle) {
+    if (!needle) return true;
+    const haystack = [device.name, device.detail, stateLabels[device.state] || device.state, device.platform]
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(needle);
+  }
+
   function draw() {
     refresh.disabled = !connected || Boolean(busy);
+    refresh.dataset.spinning = String(busy === "refresh");
     picker.setAttribute("aria-busy", String(Boolean(busy) || !listing));
-    loading.hidden = (!busy && Boolean(listing)) || !alertMessage.hidden;
-    if (!listing) return;
-    const focused = document.activeElement?.dataset.device;
+    loading.hidden = !busy && Boolean(listing);
+
+    if (!listing) {
+      groups.replaceChildren(...platforms.map(makeSkeletonSection));
+      return;
+    }
+
+    const totalDevices = listing.devices.length;
+    searchWrap.hidden = totalDevices === 0 && !filterQuery;
+    clearFilter.hidden = !filterQuery;
+    searchKbd.hidden = Boolean(filterQuery);
+
+    const needle = filterQuery.trim().toLowerCase();
+    const focused = document.activeElement?.dataset?.device;
+
     const sections = platforms.map((platform) => {
       const section = document.createElement("section");
+      section.className = "platform-group";
+
+      const allForPlatform = listing.devices.filter((device) => device.platform === platform.id);
+      const devices = allForPlatform.filter((device) => matchesFilter(device, needle));
+      const runningCount = allForPlatform.filter((device) => device.state === "running").length;
+
+      const header = document.createElement("div");
+      header.className = "group-header";
       const title = document.createElement("h2");
-      title.textContent = platform.label;
-      section.append(title);
-      const devices = listing.devices.filter((device) => device.platform === platform.id);
+      title.className = "group-title";
+      title.innerHTML = ICONS[platform.id];
+      const titleText = document.createElement("span");
+      titleText.textContent = platform.label;
+      title.append(titleText);
+
+      const count = document.createElement("span");
+      count.className = "group-count";
+      if (allForPlatform.length > 0) {
+        const baseCount = needle ? `${devices.length} of ${allForPlatform.length}` : String(allForPlatform.length);
+        count.textContent = runningCount > 0 ? `${runningCount} running · ${baseCount}` : baseCount;
+      }
+      header.append(title, count);
+      section.append(header);
+
       if (devices.length) {
         const list = document.createElement("ul");
+        list.className = "group-card";
         list.append(...devices.map(makeRow));
         section.append(list);
       } else {
+        const card = document.createElement("div");
+        card.className = "empty-card";
+        card.innerHTML = ICONS[platform.id];
         const empty = document.createElement("p");
         empty.className = "empty";
-        empty.textContent = listing.issues?.[platform.id] || platform.empty;
-        section.append(empty);
+        if (needle && allForPlatform.length > 0) {
+          empty.textContent = `No ${platform.noun} match “${filterQuery.trim()}”.`;
+          const reset = document.createElement("button");
+          reset.type = "button";
+          reset.className = "empty-action";
+          reset.textContent = "Clear filter";
+          reset.addEventListener("click", () => {
+            filterQuery = "";
+            filterInput.value = "";
+            draw();
+            filterInput.focus();
+          });
+          card.append(empty, reset);
+        } else {
+          empty.textContent = listing.issues?.[platform.id] || platform.empty;
+          card.append(empty);
+        }
+        section.append(card);
       }
       return section;
     });
@@ -281,13 +1221,13 @@
   }
 
   function focusDevice(id) {
-    [...groups.querySelectorAll("button")].find((button) => button.dataset.device === id)?.focus();
+    [...groups.querySelectorAll("button[data-device]")].find((button) => button.dataset.device === id)?.focus();
   }
 
   async function reload(restoreFocus = "") {
     busy = "refresh";
     showError("");
-    loading.textContent = "Finding local devices…";
+    loadingText.textContent = "Finding local devices…";
     draw();
     drawTabs();
     try {
@@ -304,6 +1244,7 @@
 
   function showPicker(focusId) {
     activeDevice = "";
+    activeOrigin = "";
     frame.removeAttribute("src");
     viewer.hidden = true;
     picker.hidden = false;
@@ -313,7 +1254,7 @@
   async function select(device, fromTab = false) {
     if (busy) return;
     const status = device.state === "stopped" ? "Starting " : "Opening ";
-    loading.textContent = status + device.name + "…";
+    loadingText.textContent = status + device.name + "…";
     busy = device.id;
     showError("");
     draw();
@@ -326,13 +1267,24 @@
       }
       const opened = { ...data.device, state: "running" };
       activeDevice = opened.id;
+      activeOrigin = url.origin;
       openDevices.set(opened.id, opened);
       frame.title = opened.name + " live preview";
-      if (opened.platform === "android") url.searchParams.set("layout", "compact");
+      if (opened.platform === "android") {
+        url.searchParams.set("layout", "compact");
+        url.searchParams.set("theme", currentTheme);
+      }
       frame.src = url.href;
       picker.hidden = true;
       viewer.hidden = false;
     } catch (error) {
+      if (fromTab) {
+        activeDevice = "";
+        activeOrigin = "";
+        frame.removeAttribute("src");
+        viewer.hidden = true;
+        picker.hidden = false;
+      }
       showError(error.message);
     } finally {
       busy = "";
@@ -349,13 +1301,53 @@
   back.addEventListener("click", () => {
     if (activeDevice) showPicker(activeDevice);
   });
+  dismissError.addEventListener("click", () => {
+    showError("");
+  });
+  filterInput.addEventListener("input", () => {
+    filterQuery = filterInput.value;
+    draw();
+  });
+  filterInput.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && filterInput.value) {
+      event.preventDefault();
+      filterQuery = "";
+      filterInput.value = "";
+      draw();
+    }
+  });
+  clearFilter.addEventListener("click", () => {
+    filterQuery = "";
+    filterInput.value = "";
+    draw();
+    filterInput.focus();
+  });
+  addEventListener("keydown", (event) => {
+    if (event.key !== "/" || picker.hidden || searchWrap.hidden) return;
+    const tag = document.activeElement?.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || document.activeElement?.isContentEditable) return;
+    event.preventDefault();
+    filterInput.focus();
+  });
+
+  draw();
 
   addEventListener("message", ({ source, data }) => {
     if (source !== parent || data?.jsonrpc !== "2.0") return;
+    if (data.method === "ping" && data.id !== undefined) {
+      broadcast({ id: data.id, result: {} });
+      return;
+    }
     if (data.id === 1 && data.result) {
       connected = true;
+      applyHostContext(data.result.hostContext);
       broadcast({ method: "ui/notifications/initialized" });
       draw();
+      return;
+    }
+    if (data.method === "ui/notifications/host-context-changed") {
+      applyHostContext(data.params);
+      return;
     }
     if (data.method === "ui/notifications/tool-result" && !listing) {
       try {
@@ -364,6 +1356,7 @@
         showError(error.message);
       }
       draw();
+      return;
     }
     const pending = requests.get(data.id);
     if (pending) {
