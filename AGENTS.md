@@ -2,18 +2,19 @@
 
 ## Scope
 
-Devices is a local MCP App for the standalone Antigravity desktop app on macOS. Open it from **+ → Plugins → Devices** in a conversation. Keep the plugin ID `ios-simulator` and the `open_simulator` entry point compatible with existing installs.
+Devices (`antigravity-devices`) is a local MCP App for the standalone Antigravity desktop app on macOS. Open it from **+ → Plugins → Devices** in a conversation. The plugin ID is `antigravity-devices` and the primary entry point tool is `open_devices`.
 
-Make changes in this checkout. Treat `dist/plugin`, the installed copy at `~/.gemini/config/plugins/ios-simulator`, and other apps' managed files as build outputs or reference material. Keep generated bundles, dependencies, and machine-specific configuration out of version control.
+Make changes in this checkout. Treat `dist/plugin`, the installed copy at `~/.gemini/config/plugins/antigravity-devices`, and other apps' managed files as build outputs or reference material. Keep generated bundles, dependencies, and machine-specific configuration out of version control.
 
 ## Source map
 
 | File | Responsibility |
 | --- | --- |
 | `plugin.json`, `mcp_config.json` | Plugin manifest and portable MCP server configuration. |
-| `scripts/server.mjs` | MCP over stdio, the Antigravity side-panel entry point, and the panel's resource and tool declarations. `open_simulator` loads the picker. `list_devices` and `open_device` are panel-only tools. |
+| `rules/AGENTS.md` | Bundled plugin rule packaged into `dist/plugin/rules/AGENTS.md` so agents automatically open the Devices panel during mobile testing. |
+| `scripts/server.mjs` | MCP over stdio, the Antigravity side-panel entry point, and the panel's resource and tool declarations. `open_devices` loads the picker. `list_devices` and `open_device` are panel-only tools. |
 | `scripts/preview.html` | Device picker, tabs, active preview iframe, and the MCP App messaging bridge. |
-| `scripts/devices.mjs` | Device discovery through Xcode and the Android SDK, booting when requested, preview port allocation, worker reuse, and cleanup. iOS previews use `serve-sim` from Paseo Devices. |
+| `scripts/devices.mjs` | Device discovery through Xcode and the Android SDK, booting when requested, preview port allocation, worker reuse, and cleanup. iOS previews use the bundled `serve-sim` package. |
 | `scripts/android-preview.mjs` | Accelerated Android streaming and input through the local T3 Code Expo Device Hub when available, with the bundled `serve-emu` streamer as a fallback. |
 | `patches/serve-emu-compact.patch` | Compact Android controls against the pinned `serve-emu` release. Update this patch against that release when changing the embedded Android UI. |
 | `build/package.mjs`, `build/vite.config.mjs` | Stage locked runtime dependencies, apply the Android patch, rebuild its UI, and package the plugin. Packaging writes the local Node path into the staged MCP configuration. |

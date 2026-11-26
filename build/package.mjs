@@ -10,7 +10,7 @@ mkdirSync(dist, { recursive: true });
 const stage = mkdtempSync(join(dist, "package-"));
 
 try {
-  const runtime = join(stage, "android-tools");
+  const runtime = join(stage, "runtime-tools");
   mkdirSync(runtime);
   for (const file of ["package.json", "bun.lock"]) cpSync(join(root, file), join(runtime, file));
   run("bun", ["install", "--production", "--frozen-lockfile", "--ignore-scripts"], runtime);
@@ -22,6 +22,7 @@ try {
   ], root);
 
   cpSync(join(root, "scripts"), join(stage, "scripts"), { recursive: true });
+  cpSync(join(root, "rules"), join(stage, "rules"), { recursive: true });
   cpSync(join(root, "plugin.json"), join(stage, "plugin.json"));
   const mcp = JSON.parse(readFileSync(join(root, "mcp_config.json"), "utf8"));
   mcp.mcpServers.preview.command = process.execPath;

@@ -2,14 +2,14 @@ import { readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { frameDomains, listDevices, openDevice, stopPreviews } from "./devices.mjs";
 
-const uri = "ui://ios-simulator/preview.html";
+const uri = "ui://antigravity-devices/preview.html";
 const mimeType = "text/html;profile=mcp-app";
 const noArgs = { type: "object", properties: {}, additionalProperties: false };
 const resource = { uri, mimeType, name: "Devices" };
 const appOnly = { ui: { visibility: ["app"] } };
 const tools = [
   {
-    name: "open_simulator",
+    name: "open_devices",
     description: "Show the local iOS simulators and Android emulators in the device picker.",
     inputSchema: noArgs,
     _meta: {
@@ -39,10 +39,13 @@ function result(data, text) {
   };
 }
 
+const unsupportedPlatformMessage = "Devices is currently only supported for Antigravity on macOS.";
+
 async function callTool(name, args) {
   try {
+    if (process.platform !== "darwin") throw new Error(unsupportedPlatformMessage);
     switch (name) {
-      case "open_simulator":
+      case "open_devices":
       case "list_devices":
         return result(await listDevices());
       case "open_device":
@@ -63,7 +66,7 @@ async function respond({ method, params, id }) {
       return {
         protocolVersion: params?.protocolVersion ?? "2025-11-25",
         capabilities: { resources: {}, tools: {} },
-        serverInfo: { name: "ios-simulator", version: "1.4.0" }
+        serverInfo: { name: "antigravity-devices", version: "0.5.0" }
       };
     case "ping":
       return {};

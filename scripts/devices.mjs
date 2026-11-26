@@ -1,5 +1,5 @@
 import { execFile, spawn } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { createServer } from "node:net";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -122,14 +122,9 @@ async function waitForAndroid(name, serial, failed = () => false) {
 }
 
 function serveSim() {
-  const installs = join(home, ".paseo", "plugins", "devices");
-  if (existsSync(installs)) {
-    for (const entry of readdirSync(installs)) {
-      const cli = join(installs, entry, "checkout/plugins/devices/node_modules/serve-sim/dist/serve-sim.js");
-      if (existsSync(cli)) return cli;
-    }
-  }
-  throw new Error("The iOS preview needs the Devices plugin installed in Paseo.");
+  const cli = fileURLToPath(new URL("../runtime-tools/node_modules/serve-sim/dist/serve-sim.js", import.meta.url));
+  if (existsSync(cli)) return cli;
+  throw new Error("The iOS preview needs the bundled serve-sim package.");
 }
 
 async function matches(port, platform, target) {
@@ -167,7 +162,7 @@ async function stream(platform, target) {
   const bun = join(home, ".bun/bin/bun");
   const iosPreview = fileURLToPath(new URL("./ios-preview.mjs", import.meta.url));
   const androidPreview = fileURLToPath(new URL("./android-preview.mjs", import.meta.url));
-  const emuCli = fileURLToPath(new URL("../android-tools/node_modules/serve-emu/src/cli.ts", import.meta.url));
+  const emuCli = fileURLToPath(new URL("../runtime-tools/node_modules/serve-emu/src/cli.ts", import.meta.url));
   if (!ios && (!existsSync(bun) || !existsSync(emuCli))) {
     throw new Error("The Android preview needs Bun and the bundled serve-emu package.");
   }
