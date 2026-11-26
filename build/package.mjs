@@ -23,6 +23,7 @@ try {
 
   cpSync(join(root, "scripts"), join(stage, "scripts"), { recursive: true });
   cpSync(join(root, "rules"), join(stage, "rules"), { recursive: true });
+  cpSync(join(root, "assets"), join(stage, "assets"), { recursive: true });
   cpSync(join(root, "plugin.json"), join(stage, "plugin.json"));
   const mcp = JSON.parse(readFileSync(join(root, "mcp_config.json"), "utf8"));
   mcp.mcpServers.preview.command = process.execPath;

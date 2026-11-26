@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="14" y1="14" x2="114" y2="114" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1E293B"/>
+      <stop offset="100%" stop-color="#0F172A"/>
+    </linearGradient>
+    <linearGradient id="screenFront" x1="36" y1="30" x2="76" y2="96" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#6366F1"/>
+    </linearGradient>
+    <linearGradient id="screenBack" x1="60" y1="38" x2="96" y2="94" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#34D399"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Squircle badge with ~10% margin baked in -->
+  <rect x="14" y="14" width="100" height="100" rx="24" fill="url(#bg)" stroke="#475569" stroke-opacity="0.55" stroke-width="2"/>
+
+  <!-- Back device (Android) -->
+  <rect x="60" y="36" width="38" height="62" rx="8" fill="#1E293B" stroke="#94A3B8" stroke-width="2.5"/>
+  <rect x="64" y="42" width="30" height="48" rx="4" fill="url(#screenBack)"/>
+  <circle cx="79" cy="39" r="1.4" fill="#94A3B8"/>
+  <rect x="73" y="93" width="12" height="2" rx="1" fill="#94A3B8"/>
+
+  <!-- Front device (iOS) -->
+  <rect x="30" y="28" width="44" height="72" rx="10" fill="#0F172A" stroke="#F8FAFC" stroke-width="3"/>
+  <rect x="34.5" y="32.5" width="35" height="63" rx="6.5" fill="url(#screenFront)"/>
+
+  <!-- Dynamic Island -->
+  <rect x="46" y="36" width="12" height="3.5" rx="1.75" fill="#0F172A"/>
+
+  <!-- Subtle UI elements on front screen -->
+  <rect x="40" y="46" width="24" height="14" rx="3.5" fill="#FFFFFF" fill-opacity="0.25"/>
+  <rect x="40" y="64" width="11" height="11" rx="3" fill="#FFFFFF" fill-opacity="0.22"/>
+  <rect x="53" y="64" width="11" height="11" rx="3" fill="#FFFFFF" fill-opacity="0.22"/>
+  <rect x="40" y="79" width="24" height="7" rx="3" fill="#FFFFFF" fill-opacity="0.18"/>
+
+  <!-- Home indicator -->
+  <rect x="45" y="90.5" width="14" height="2.2" rx="1.1" fill="#FFFFFF" fill-opacity="0.85"/>
+</svg>
