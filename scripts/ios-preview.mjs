@@ -486,6 +486,24 @@ export const AG_IOS_INJECTION = `
     }
   });
 
+  let frameCount = 0;
+  let lastFpsAt = performance.now();
+  let currentFps = null;
+  let hasVideoFrames = false;
+  let streamWidth = 0;
+  let streamHeight = 0;
+
+  const origDrawImage = CanvasRenderingContext2D.prototype.drawImage;
+  CanvasRenderingContext2D.prototype.drawImage = function patchedDrawImage(...args) {
+    if (typeof VideoFrame === "function" && args[0] instanceof VideoFrame) {
+      frameCount++;
+      hasVideoFrames = true;
+      streamWidth = args[0].displayWidth || 0;
+      streamHeight = args[0].displayHeight || 0;
+    }
+    return origDrawImage.apply(this, args);
+  };
+
   function mountShell() {
     if (document.getElementById("ag-ios-topbar")) return;
 
@@ -627,6 +645,11 @@ export const AG_IOS_INJECTION = `
       const pill = q('[data-testid="stream-status-pill"]');
       const pillText = pill?.textContent?.trim() || "";
       const isLive = pillText === "live";
+      if (!isLive) {
+        currentFps = null;
+        streamWidth = 0;
+        streamHeight = 0;
+      }
       const titleEl = q('[data-simulator-toolbar-title]');
       const simName = titleEl?.textContent?.trim() || "";
       const dot = document.getElementById("ag-ios-dot");
@@ -634,8 +657,27 @@ export const AG_IOS_INJECTION = `
       const nextState = isLive ? "streaming" : "connecting";
       if (dot && dot.dataset.state !== nextState) dot.dataset.state = nextState;
       if (metaText) {
-        const nextText = simName && simName !== "No simulator" ? nextState + " • " + simName : nextState;
+        let nextText = "connecting…";
+        if (isLive) {
+          if (!streamWidth || !streamHeight) {
+            const img = q('#root img[src*="stream.mjpeg"]');
+            if (img?.naturalWidth && img?.naturalHeight) {
+              streamWidth = img.naturalWidth;
+              streamHeight = img.naturalHeight;
+            }
+          }
+          if (streamWidth && streamHeight && currentFps !== null) {
+            nextText = streamWidth + "×" + streamHeight + " · " + currentFps + " fps";
+          } else if (streamWidth && streamHeight) {
+            nextText = streamWidth + "×" + streamHeight;
+          } else if (currentFps !== null) {
+            nextText = currentFps + " fps";
+          } else {
+            nextText = "streaming";
+          }
+        }
         if (metaText.textContent !== nextText) metaText.textContent = nextText;
+        metaText.title = simName && simName !== "No simulator" ? simName : "";
       }
 
       const toolsBtn = q('button[aria-label="Open tools panel"]');
@@ -681,6 +723,14 @@ export const AG_IOS_INJECTION = `
     };
 
     syncUi();
+    setInterval(() => {
+      if (!hasVideoFrames) return;
+      const now = performance.now();
+      currentFps = Math.round((frameCount * 1000) / Math.max(1, now - lastFpsAt));
+      frameCount = 0;
+      lastFpsAt = now;
+      syncUi();
+    }, 1000);
     const rootTarget = document.getElementById("root") || document.body;
     const observer = new MutationObserver(scheduleSync);
     observer.observe(rootTarget, { childList: true, subtree: true, attributes: true, characterData: true });

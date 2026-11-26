@@ -258,7 +258,26 @@
      </footer>
 --- a/src/ui/components/status-bar.tsx
 +++ b/src/ui/components/status-bar.tsx
-@@ -43,18 +43,19 @@
+@@ -17,13 +17,11 @@
+   controlError,
+   onDismissError,
+ }: Props) {
+-  const frameRate = status === "streaming" && fps === 0 ? "idle" : `${fps} fps`;
+-  const latency = stats?.e2eMs != null ? ` • ${Math.round(stats.e2eMs)}ms` : "";
+-  const meta =
+-    status +
+-    (deviceSize
+-      ? ` • ${deviceSize.width}×${deviceSize.height} • ${frameRate}${latency}`
+-      : "");
++  const frameRate = `${fps} fps`;
++  const meta =
++    status === "streaming" && deviceSize
++      ? `${deviceSize.width}×${deviceSize.height} · ${frameRate}`
++      : status;
+   const detail = stats
+     ? [
+         stats.transitMs != null ? `transit ${stats.transitMs}ms` : null,
+@@ -43,18 +41,19 @@
          .join(" • ")
      : undefined;
    return (
