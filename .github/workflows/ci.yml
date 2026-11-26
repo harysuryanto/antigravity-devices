@@ -50,7 +50,7 @@ jobs:
               if (!fs.existsSync(file)) throw new Error("Missing build artifact: " + file);
             }
             const plugin = JSON.parse(fs.readFileSync("dist/plugin/plugin.json", "utf8"));
-            if (plugin.name !== "agy-devices") throw new Error("Unexpected plugin name: " + plugin.name);
+            if (plugin.name !== "antigravity-devices") throw new Error("Unexpected plugin name: " + plugin.name);
             JSON.parse(fs.readFileSync("dist/plugin/mcp_config.json", "utf8"));
             console.log("Package layout verified for", plugin.name, plugin.version);
           '

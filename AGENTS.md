@@ -2,9 +2,9 @@
 
 ## Scope
 
-Devices (`agy-devices`) is a local MCP App for the standalone Antigravity desktop app on macOS. Open it from **+ → Plugins → Devices** in a conversation. The plugin ID is `agy-devices` and the primary entry point tool is `open_devices`.
+Devices (`antigravity-devices`) is a local MCP App for the standalone Antigravity desktop app on macOS. Open it from **+ → Plugins → Devices** in a conversation. The plugin ID is `antigravity-devices` and the primary entry point tool is `open_devices`.
 
-Make changes in this checkout. Treat `dist/plugin`, the installed copy at `~/.gemini/config/plugins/agy-devices`, and other apps' managed files as build outputs or reference material. Keep generated bundles, dependencies, and machine-specific configuration out of version control.
+Make changes in this checkout. Treat `dist/plugin`, the installed copy at `~/.gemini/config/plugins/antigravity-devices`, and other apps' managed files as build outputs or reference material. Keep generated bundles, dependencies, and machine-specific configuration out of version control.
 
 ## Source map
 

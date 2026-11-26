@@ -1,4 +1,4 @@
-# Devices for Antigravity (`agy-devices`)
+# Devices for Antigravity (`antigravity-devices`)
 
 A local plugin for the standalone Antigravity App on macOS. Open a conversation and select **+ → Plugins → Devices** to pick an iOS simulator or Android emulator. Open additional devices via **All devices**.
 
@@ -15,7 +15,7 @@ bun run validate
 bun run install:local
 ```
 
-The build produces `dist/plugin`. Installation copies that package into `~/.gemini/config/plugins/agy-devices` and records the current machine’s Node executable for the desktop app. After installing an update, close and reopen the Devices panel. For server changes, restart **preview** under **Customizations → Installed → Devices → MCP**.
+The build produces `dist/plugin`. Installation copies that package into `~/.gemini/config/plugins/antigravity-devices` and records the current machine’s Node executable for the desktop app. After installing an update, close and reopen the Devices panel. For server changes, restart **preview** under **Customizations → Installed → Devices → MCP**.
 
 ## Source
 

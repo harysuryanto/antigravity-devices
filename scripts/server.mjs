@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { createInterface } from "node:readline";
 import { frameDomains, listDevices, openDevice, stopPreviews } from "./devices.mjs";
 
-const uri = "ui://agy-devices/preview.html";
+const uri = "ui://antigravity-devices/preview.html";
 const mimeType = "text/html;profile=mcp-app";
 const noArgs = { type: "object", properties: {}, additionalProperties: false };
 const resource = { uri, mimeType, name: "Devices" };
@@ -66,7 +66,7 @@ async function respond({ method, params, id }) {
       return {
         protocolVersion: params?.protocolVersion ?? "2025-11-25",
         capabilities: { resources: {}, tools: {} },
-        serverInfo: { name: "agy-devices", version: "0.5.0" }
+        serverInfo: { name: "antigravity-devices", version: "0.5.0" }
       };
     case "ping":
       return {};
