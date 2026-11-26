@@ -20,5 +20,6 @@ The build produces `dist/plugin`. Installation copies that package into `~/.gemi
 - `scripts/preview.html` contains the device picker and tabs.
 - `scripts/server.mjs` exposes the Antigravity MCP App.
 - `scripts/devices.mjs` discovers devices and launches previews.
+- `scripts/ios-preview.mjs` wraps the `serve-sim` iOS preview in compact Antigravity chrome.
 - `scripts/android-preview.mjs` selects the accelerated Android path or the bundled fallback.
 - `patches/serve-emu-compact.patch` contains the Android preview layout changes against the pinned upstream package. The build applies it and rebuilds that package’s UI.

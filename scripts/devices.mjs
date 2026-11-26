@@ -164,8 +164,8 @@ async function stream(platform, target) {
   const available = await Promise.all(ports.map(isFree));
   const port = ports[available.indexOf(true)];
   if (!port) throw new Error("All local " + (ios ? "iOS" : "Android") + " preview ports are in use.");
-  const flags = ["--host", "127.0.0.1", "--port", String(port)];
   const bun = join(home, ".bun/bin/bun");
+  const iosPreview = fileURLToPath(new URL("./ios-preview.mjs", import.meta.url));
   const androidPreview = fileURLToPath(new URL("./android-preview.mjs", import.meta.url));
   const emuCli = fileURLToPath(new URL("../android-tools/node_modules/serve-emu/src/cli.ts", import.meta.url));
   if (!ios && (!existsSync(bun) || !existsSync(emuCli))) {
@@ -176,7 +176,7 @@ async function stream(platform, target) {
     PATH: join(sdk, "platform-tools") + ":" + (process.env.PATH || "/usr/bin:/bin")
   } : process.env;
   const worker = ios
-    ? spawn(process.execPath, [serveSim(), ...flags, "--panes", "none", "--fit", target], { stdio: "ignore" })
+    ? spawn(process.execPath, [iosPreview, serveSim(), String(port), target], { stdio: "ignore" })
     : spawn(bun, [androidPreview, String(port), target], { stdio: "ignore", env });
   children.set(port, worker);
   let failed = false;

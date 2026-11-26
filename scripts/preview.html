@@ -1270,10 +1270,8 @@
       activeOrigin = url.origin;
       openDevices.set(opened.id, opened);
       frame.title = opened.name + " live preview";
-      if (opened.platform === "android") {
-        url.searchParams.set("layout", "compact");
-        url.searchParams.set("theme", currentTheme);
-      }
+      url.searchParams.set("layout", "compact");
+      url.searchParams.set("theme", currentTheme);
       frame.src = url.href;
       picker.hidden = true;
       viewer.hidden = false;

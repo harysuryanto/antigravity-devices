@@ -29,7 +29,7 @@ Native-feeling, zero-config local simulator and emulator streaming inside Antigr
 - Preserve plugin ID `ios-simulator`, `open_simulator` `aux_pane` entrypoint, and app-only `list_devices` and `open_device` tools.
 - Start on the device picker with iOS simulators and Android emulators in separate groups; offer **Open** for running devices, **Connect** for starting devices, and **Start** for stopped devices.
 - Preserve open device tabs across list refreshes; **All devices** returns to the picker without closing tabs; closing a tab or restarting the MCP server leaves the underlying simulator or emulator running.
-- Keep the Android preview compact with hardware controls (`Back`, `Home`, `Recents`, `Power`) visible and secondary controls grouped under **Android tools**, shared across both accelerated and fallback Android streaming paths.
+- Keep both iOS and Android previews compact with primary device actions visible in a bottom dock (`Home`, `Rotate`, `Screenshot`, `Inspect` on iOS; `Back`, `Home`, `Recents`, `Power` on Android) and secondary controls grouped under **iOS tools** / **Inspector** and **Android tools**.
 - Bind preview HTTP/WebSocket listeners strictly to `127.0.0.1`, enforce origin/path checks before loading iframe streams, reserve MCP stdout for JSON-RPC, and never log credentials or screen contents.
 
 ## Brand Commitments
@@ -39,6 +39,7 @@ Follow the standalone Antigravity Chat App (Antigravity 2.0) Auxiliary Pane UI l
 ## Evidence on Hand
 
 - `scripts/preview.html`: MCP App picker, tab strip, iframe preview stage, and JSON-RPC `postMessage` bridge.
+- `scripts/ios-preview.mjs`: Compact layout and live Appearance wrapper around Paseo's `serve-sim` iOS streamer.
 - `patches/serve-emu-compact.patch`: Compact layout and styling patch applied to `serve-emu@0.1.0` for embedded Android streaming.
 - `scripts/server.mjs`, `scripts/devices.mjs`, `scripts/android-preview.mjs`: MCP server, device discovery/booting, and loopback preview orchestration.
 

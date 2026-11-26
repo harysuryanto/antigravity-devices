@@ -91,7 +91,7 @@ Devices sits directly inside the standalone Antigravity Chat App's Auxiliary Pan
 Every screen prioritizes Operate-mode scanability and live device stage area. Color stays silent until state demands it—a 6px pulsing green status dot for booted devices, warm amber while booting or reconnecting, and restrained crimson for actionable boot errors.
 
 **Key Characteristics:**
-- Live synchronization with Antigravity `hostContext.theme` and `hostContext.styles.variables` across both the picker shell and the embedded Android streamer.
+- Live synchronization with Antigravity `hostContext.theme` and `hostContext.styles.variables` across the picker shell, the wrapped iOS `serve-sim` preview, and the embedded Android `serve-emu` streamer.
 - Monochrome action hierarchy (`Open` uses tonal fill; `Start` uses hairline outline; `--ag-primary` is reserved strictly for focus rings and selection).
 - Elastic `rem` + `--font-text-*-size` sizing so window zoom and host font-size preferences scale controls without clipping.
 - Unified `1.5px`-stroke geometric SVG iconography.
@@ -139,7 +139,7 @@ A monochrome neutral surface ramp paired with live MCP host overrides and three 
 
 - **Picker Column:** Fluid width centered up to `44rem` (`704px`) with `1rem` horizontal padding (`0.75rem` below `320px` pane widths where device glyph tiles collapse automatically).
 - **4px Rhythm:** Tight intra-row spacing (`2px` between device name and metadata, `6px` icon gaps) paired with clear inter-group separation (`20px` above platform headers vs. `7px` below).
-- **Compact Android Grid:** Fixed-inset 3-row viewport (`auto minmax(0, 1fr) auto`): a unified `2.25rem` top utility bar (telemetry left, **Android tools** right), a `container-type: size` stage framing the live `<canvas>`, and a `1px`-bordered bottom hardware dock.
+- **Compact Preview Chrome (iOS & Android):** Shared `2.25rem` top utility bar (live status dot + device telemetry on the left, **Inspector** / **iOS tools** or **Android tools** on the right), centered live device stage, floating card popovers (`aside.right-3` on iOS, `.android-tools-content` on Android) with single-container flush accordions, and a `1px`-bordered `2.25rem` bottom action/hardware dock.
 
 ## Elevation & Depth
 
@@ -181,7 +181,7 @@ Surfaces are **flat and tonal at rest**, separated by `1px` hairlines (`--ag-car
 ## Do's and Don'ts
 
 ### Do:
-- **Do** read MCP `hostContext.theme` and `hostContext.styles.variables` on `ui/initialize` and `ui/notifications/host-context-changed`, and forward updates to embedded `127.0.0.1` Android preview frames via `postMessage`.
+- **Do** read MCP `hostContext.theme` and `hostContext.styles.variables` on `ui/initialize` and `ui/notifications/host-context-changed`, and forward updates to embedded `127.0.0.1` iOS and Android preview frames via `postMessage`.
 - **Do** keep iOS simulators and Android emulators in separate platform groups with running devices sorted first.
 - **Do** draw all icons as inline SVGs with `1.5px` stroke, round caps, and round joins.
 
