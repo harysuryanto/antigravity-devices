@@ -11,13 +11,15 @@ Make changes in this checkout. Treat `dist/plugin`, the installed copy at `~/.ge
 | File | Responsibility |
 | --- | --- |
 | `plugin.json`, `mcp_config.json` | Plugin manifest and portable MCP server configuration. |
+| `bin/launch-server.sh` | Portable Node.js 22+ launcher invoked by `mcp_config.json` across macOS GUI environments. |
 | `rules/AGENTS.md` | Bundled plugin rule packaged into `dist/plugin/rules/AGENTS.md` so agents automatically open the Devices panel during mobile testing. |
 | `scripts/server.mjs` | MCP over stdio, the Antigravity side-panel entry point, and the panel's resource and tool declarations. `open_devices` loads the picker. `list_devices` and `open_device` are panel-only tools. |
 | `scripts/preview.html` | Device picker, tabs, active preview iframe, and the MCP App messaging bridge. |
 | `scripts/devices.mjs` | Device discovery through Xcode and the Android SDK, booting when requested, preview port allocation, worker reuse, and cleanup. iOS previews use the bundled `serve-sim` package. |
+| `scripts/ios-preview.mjs` | Compact Antigravity chrome and live theme wrapper around the bundled `serve-sim` iOS preview. |
 | `scripts/android-preview.mjs` | Accelerated Android streaming and input through the local T3 Code Expo Device Hub when available, with the bundled `serve-emu` streamer as a fallback. |
 | `patches/serve-emu-compact.patch` | Compact Android controls against the pinned `serve-emu` release. Update this patch against that release when changing the embedded Android UI. |
-| `build/package.mjs`, `build/vite.config.mjs` | Stage locked runtime dependencies, apply the Android patch, rebuild its UI, and package the plugin. Packaging writes the local Node path into the staged MCP configuration. |
+| `build/package.mjs`, `build/release.mjs`, `build/vite.config.mjs` | Stage locked runtime dependencies, apply the Android patch, rebuild its UI, package the portable plugin (`dist/plugin`), and build release archives (`dist/release`). |
 
 ## Behavior to preserve
 
