@@ -46,7 +46,7 @@
    const controls = useMemo<StreamControls>(
      () => ({
        canvasRef,
-@@ -189,7 +221,100 @@
+@@ -189,7 +221,104 @@
      (key: HardwareKey) => send({ type: key }),
      [send],
    );
@@ -66,7 +66,11 @@
 +  }, []);
 +
 +  const deviceView = (
-+    <div className="device" data-has-size={deviceSize ? "true" : undefined}>
++    <div
++      className="device"
++      data-has-size={deviceSize ? "true" : undefined}
++      style={deviceSize ? { ["--ag-device-ar" as string]: String(deviceSize.width / deviceSize.height) } : undefined}
++    >
 +      <DeviceStream
 +        canvasRef={canvasRef}
 +        send={send}
@@ -258,7 +262,25 @@
      </footer>
 --- a/src/ui/components/status-bar.tsx
 +++ b/src/ui/components/status-bar.tsx
-@@ -17,13 +17,11 @@
+@@ -1,3 +1,4 @@
++import { useEffect, useRef, useState } from "react";
+ import type { DeviceSize, StreamStats } from "../lib/use-stream";
+ 
+ type Props = {
+@@ -11,19 +12,85 @@
+ 
++const RESOLUTION_PRESETS = [
++  { id: "low-latency", label: "Low latency", detail: "800p", maxDimension: 800, h264Bitrate: 4_000_000 },
++  { id: "balanced", label: "Balanced", detail: "1080p", maxDimension: 1080, h264Bitrate: 6_000_000 },
++  { id: "sharp", label: "Sharp", detail: "1440p", maxDimension: 1440, h264Bitrate: 8_000_000 },
++  { id: "native", label: "Native", detail: "Full", maxDimension: 0, h264Bitrate: 10_000_000 },
++] as const;
++
+ export function StatusBar({
+   status,
+   deviceSize,
+   fps,
+   stats,
    controlError,
    onDismissError,
  }: Props) {
@@ -269,15 +291,76 @@
 -    (deviceSize
 -      ? ` • ${deviceSize.width}×${deviceSize.height} • ${frameRate}${latency}`
 -      : "");
++  const [menuOpen, setMenuOpen] = useState(false);
++  const [activeMaxDim, setActiveMaxDim] = useState<number>(800);
++  const [updating, setUpdating] = useState(false);
++  const pickerRef = useRef<HTMLDivElement>(null);
++
++  useEffect(() => {
++    if (status !== "streaming") return;
++    let cancelled = false;
++    fetch("/api/stream-settings")
++      .then((res) => (res.ok ? res.json() : null))
++      .then((data) => {
++        if (!cancelled && typeof data?.maxDimension === "number") {
++          setActiveMaxDim(data.maxDimension);
++        }
++      })
++      .catch(() => {});
++    return () => {
++      cancelled = true;
++    };
++  }, [status]);
++
++  useEffect(() => {
++    if (!menuOpen) return;
++    const onPointerDown = (event: PointerEvent) => {
++      if (event.target instanceof Node && !pickerRef.current?.contains(event.target)) {
++        setMenuOpen(false);
++      }
++    };
++    const onKeyDown = (event: KeyboardEvent) => {
++      if (event.key === "Escape") {
++        setMenuOpen(false);
++      }
++    };
++    document.addEventListener("pointerdown", onPointerDown);
++    document.addEventListener("keydown", onKeyDown);
++    return () => {
++      document.removeEventListener("pointerdown", onPointerDown);
++      document.removeEventListener("keydown", onKeyDown);
++    };
++  }, [menuOpen]);
++
++  const applyPreset = async (preset: (typeof RESOLUTION_PRESETS)[number]) => {
++    setMenuOpen(false);
++    if (updating || preset.maxDimension === activeMaxDim) return;
++    setUpdating(true);
++    try {
++      const res = await fetch("/api/stream-settings", {
++        method: "PATCH",
++        headers: { "Content-Type": "application/json" },
++        body: JSON.stringify({
++          maxDimension: preset.maxDimension,
++          h264Bitrate: preset.h264Bitrate,
++        }),
++      });
++      if (res.ok) {
++        setActiveMaxDim(preset.maxDimension);
++      }
++    } catch {
++      // Ignore transient network errors; /api/stream-settings stays unchanged.
++    } finally {
++      setUpdating(false);
++    }
++  };
++
 +  const frameRate = `${fps} fps`;
-+  const meta =
-+    status === "streaming" && deviceSize
-+      ? `${deviceSize.width}×${deviceSize.height} · ${frameRate}`
-+      : status;
++  const showLiveMeta = status === "streaming" && deviceSize;
    const detail = stats
      ? [
          stats.transitMs != null ? `transit ${stats.transitMs}ms` : null,
-@@ -43,18 +41,19 @@
+@@ -43,19 +111,62 @@
          .join(" • ")
      : undefined;
    return (
@@ -298,13 +381,56 @@
        <div className="meta" title={detail}>
 -        {meta}
 +        <span className="status-indicator" aria-hidden="true" />
-+        <span className="meta-text">{meta}</span>
++        {showLiveMeta ? (
++          <span className="meta-text meta-live">
++            <span className="res-picker" ref={pickerRef}>
++              <button
++                type="button"
++                className="res-trigger"
++                aria-haspopup="menu"
++                aria-expanded={menuOpen}
++                disabled={updating}
++                onClick={() => setMenuOpen((open) => !open)}
++                title="Change stream resolution"
++              >
++                <span>{deviceSize.width}×{deviceSize.height}</span>
++                <svg className="res-chevron" viewBox="0 0 16 16" fill="none" aria-hidden="true">
++                  <path d="M4.75 6.5 8 9.75 11.25 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
++                </svg>
++              </button>
++              {menuOpen ? (
++                <div className="res-menu" role="menu" aria-label="Stream resolution">
++                  {RESOLUTION_PRESETS.map((preset) => {
++                    const active = activeMaxDim === preset.maxDimension;
++                    return (
++                      <button
++                        key={preset.id}
++                        type="button"
++                        role="menuitemradio"
++                        aria-checked={active}
++                        className="res-option"
++                        onClick={() => void applyPreset(preset)}
++                      >
++                        <span className="res-option-label">{preset.label}</span>
++                        <span className="res-option-detail">{preset.detail}</span>
++                      </button>
++                    );
++                  })}
++                </div>
++              ) : null}
++            </span>
++            <span className="meta-fps"> · {frameRate}</span>
++          </span>
++        ) : (
++          <span className="meta-text">{status}</span>
++        )}
        </div>
      </header>
    );
+ }
 --- a/src/ui/styles.css
 +++ b/src/ui/styles.css
-@@ -821,3 +821,660 @@
+@@ -821,3 +821,757 @@
      max-height: 60vh;
    }
  }
@@ -689,9 +815,16 @@
 +  width: 100%;
 +  height: 100%;
 +}
-+#root:has(.compact-layout) .compact-stage canvas {
-+  max-height: calc(100cqh - 4px);
-+  max-width: calc(100cqw - 4px);
++#root:has(.compact-layout) .compact-stage .device[data-has-size="true"] {
++  width: min(calc(100cqw - 4px), calc((100cqh - 4px) * var(--ag-device-ar, 0.45)));
++  height: min(calc(100cqh - 4px), calc((100cqw - 4px) / var(--ag-device-ar, 0.45)));
++}
++#root:has(.compact-layout) .compact-stage .device[data-has-size="true"] .stream-surface,
++#root:has(.compact-layout) .compact-stage .device[data-has-size="true"] canvas {
++  width: 100%;
++  height: 100%;
++  max-height: none;
++  max-width: none;
 +}
 +#root:has(.compact-layout) .keyboard-hint {
 +  background: color-mix(in srgb, var(--ag-card) 92%, transparent);
@@ -965,3 +1098,150 @@
 +    padding-inline: 0.5rem;
 +  }
 +}
++
++/* Resolution dropdown in top utility bar */
++#root:has(.compact-layout) > header {
++  position: relative;
++  z-index: 30;
++}
++#root:has(.compact-layout) > header .meta-text.meta-live {
++  display: inline-flex;
++  align-items: center;
++  gap: 0.25rem;
++  overflow: visible;
++}
++#root:has(.compact-layout) .res-picker {
++  position: relative;
++  display: inline-flex;
++  align-items: center;
++}
++#root:has(.compact-layout) button.res-trigger {
++  min-height: 1.375rem;
++  padding: 0 0.3125rem;
++  border-radius: var(--r-sm);
++  border: 1px solid transparent;
++  background: transparent;
++  color: var(--ag-fg-2);
++  font-size: var(--text-xs);
++  font-weight: var(--weight-medium);
++  font-variant-numeric: tabular-nums;
++  display: inline-flex;
++  align-items: center;
++  gap: 0.1875rem;
++  cursor: pointer;
++}
++#root:has(.compact-layout) button.res-trigger:hover:not(:disabled),
++#root:has(.compact-layout) button.res-trigger[aria-expanded="true"] {
++  background: var(--ag-hover);
++  color: var(--ag-fg);
++}
++#root:has(.compact-layout) .res-chevron {
++  width: 0.75rem;
++  height: 0.75rem;
++  color: var(--ag-fg-muted);
++  transition: transform 140ms var(--ease);
++}
++#root:has(.compact-layout) button.res-trigger[aria-expanded="true"] .res-chevron {
++  transform: rotate(180deg);
++}
++#root:has(.compact-layout) .res-menu {
++  position: absolute;
++  top: calc(100% + 6px);
++  left: 0;
++  z-index: 50;
++  min-width: 11.25rem;
++  padding: 0.25rem;
++  border-radius: var(--r-lg);
++  background: var(--ag-card);
++  border: 1px solid var(--ag-card-border);
++  box-shadow: var(--popover-shadow);
++  display: flex;
++  flex-direction: column;
++  gap: 0.125rem;
++}
++#root:has(.compact-layout) button.res-option {
++  width: 100%;
++  min-height: 1.75rem;
++  padding: 0.25rem 0.5rem;
++  border-radius: var(--r-sm);
++  border: 0;
++  background: transparent;
++  color: var(--ag-fg-2);
++  font-size: var(--text-xs);
++  font-weight: var(--weight-medium);
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  gap: 0.75rem;
++  text-align: left;
++}
++#root:has(.compact-layout) button.res-option:hover {
++  background: var(--ag-hover);
++  color: var(--ag-fg);
++}
++#root:has(.compact-layout) button.res-option[aria-checked="true"] {
++  background: var(--ag-fill);
++  color: var(--ag-fg);
++}
++#root:has(.compact-layout) .res-option-detail {
++  font-size: var(--text-2xs);
++  color: var(--ag-fg-muted);
++  font-variant-numeric: tabular-nums;
++}
+--- a/src/scrcpy.ts
++++ b/src/scrcpy.ts
+@@ -772,5 +772,6 @@
+ ): Promise<Socket> {
+   return new Promise<Socket>((resolve, reject) => {
+     const s = createConnection({ host: "127.0.0.1", port });
++    s.setNoDelay(true);
+     let settled = false;
+     const finish = (callback: () => void) => {
+--- a/src/ui/components/device-stream.tsx
++++ b/src/ui/components/device-stream.tsx
+@@ -142,15 +142,23 @@
+     const native = e.nativeEvent;
+     const coalesced =
+       typeof native.getCoalescedEvents === "function" ? native.getCoalescedEvents() : null;
+-    if (active && e.pointerId === active.id) e.preventDefault();
+     const latest = coalesced && coalesced.length > 0 ? coalesced[coalesced.length - 1] : e;
+     const point = pointFromClient(latest.clientX, latest.clientY);
+-    if (point) pointerMoveSchedulerRef.current?.schedule({ point, pointerId: e.pointerId });
++    if (!point) return;
++    if (active && e.pointerId === active.id) {
++      e.preventDefault();
++      if (active.x === point.x && active.y === point.y) return;
++      active.x = point.x;
++      active.y = point.y;
++      sendTouch("move", point, active.id);
++      return;
++    }
++    pointerMoveSchedulerRef.current?.schedule({ point, pointerId: e.pointerId });
+   };
+ 
+   const stopPointer = (e: PointerEvent<HTMLCanvasElement>) => {
+     const active = activeRef.current;
+     if (!active || e.pointerId !== active.id) return;
+     e.preventDefault();
+-    pointerMoveSchedulerRef.current?.flush();
++    pointerMoveSchedulerRef.current?.cancel();
+     const up = norm(e);
+--- a/src/ui/lib/stream-worker.ts
++++ b/src/ui/lib/stream-worker.ts
+@@ -408,7 +408,6 @@
+       const timing = resources.peekTiming(frame.timestamp);
+       if (timing) timing.decodedAt = now;
+       resources.pushFrame(frame);
+-      if (!renderHandle) {
+-        renderHandle = scheduleFrame(() => renderFromQueue(generation));
+-      }
++      cancelRender();
++      renderFromQueue(generation);
+     },
+@@ -688,5 +687,6 @@
+       canvas = msg.canvas;
+       ctx = canvas.getContext("2d", {
+         alpha: false,
++        desynchronized: true,
+       }) as OffscreenCanvasRenderingContext2D | null;
+       if (!ctx) {
