@@ -3,7 +3,7 @@
 
   # Devices for Antigravity
 
-  **Boot, stream, and control local iOS simulators and Android emulators at 60 fps right beside your Antigravity conversation.**
+  **Native-feel 60 fps iOS simulators and Android emulators inside Antigravity—engineered for ultra-low touch-to-display latency.**
 
   [![CI](https://github.com/harysuryanto/antigravity-devices/actions/workflows/ci.yml/badge.svg)](https://github.com/harysuryanto/antigravity-devices/actions/workflows/ci.yml)
   [![Latest Release](https://img.shields.io/github/v/release/harysuryanto/antigravity-devices?include_prereleases&label=release)](https://github.com/harysuryanto/antigravity-devices/releases)
@@ -18,16 +18,59 @@
   <p><em>Navigate iPhone Settings, switch to Pixel 6 instantly, and open Android display settings beside the same conversation.</em></p>
 </div>
 
+| 60 fps Hardware Decode | Zero Guest-CPU Tax | 1 ms Flush & `TCP_NODELAY` | Instant Tab Switching |
+| :---: | :---: | :---: | :---: |
+| `WebCodecs` + `desynchronized` `OffscreenCanvas` | Android `mmap` shared memory + host `libx264` | Zero-probe encoding & unbuffered touch dispatch | Persistent workers & iframes with zero flicker |
+
 ---
 
 ## Stop Alt-Tabbing Between Windows
 
-When building or testing React Native, Expo, Flutter, Swift, or Kotlin apps with Antigravity, constantly switching between chat, Xcode Simulator, and Android Emulator breaks your flow.
+When building or testing React Native, Expo, Flutter, Swift, or Kotlin apps with Antigravity, constantly switching between chat, Xcode Simulator, and Android Emulator breaks your flow—and typical embedded previews feel like laggy remote desktops.
 
-**Devices** (`antigravity-devices`) embeds your local simulators and emulators directly into Antigravity’s **Auxiliary Pane**:
-- **Watch your agent work in real time** as it taps, types, navigates, and dogfoods your mobile app.
-- **Jump in instantly** with mouse/touch input, keyboard typing, rotation, screenshots, and hardware keys—without leaving the conversation window.
-- **Native 60 fps loopback streaming**—hardware-accelerated capture and decoding over `127.0.0.1` with zero cloud overhead.
+**Devices** (`antigravity-devices`) embeds your local simulators and emulators directly into Antigravity’s **Auxiliary Pane** without sacrificing responsiveness:
+- **Watch your agent work in real time** as it taps, scrolls, types, and dogfoods your mobile app smoothly at 60 fps.
+- **Jump in instantly** with responsive mouse/touch input, keyboard typing, rotation, screenshots, and hardware keys—without leaving the conversation window.
+- **100% local loopback streaming** over `127.0.0.1` with zero cloud hops and no external hub app required.
+
+---
+
+## Built for Speed: Why It Feels Native
+
+Most embedded device previews rely on slow `adb` screenshot loops, guest-CPU screen recording, or buffered video queues that add noticeable lag. **Devices** eliminates each bottleneck end-to-end:
+
+| Bottleneck | Typical Embedded Previews | Devices for Antigravity |
+| --- | --- | --- |
+| **Frame capture** | Slow `adb` screenshots or guest-CPU capture | **iOS:** native framebuffer (`serve-sim`) · **Android:** emulator `mmap` shared memory |
+| **Encoding lag** | Hardware encoder queues & lookahead buffering | Host `libx264` (`ultrafast`, `zerolatency`, `nobuffer`, **1 ms** trailing access-unit flush) |
+| **Rendering** | Main-thread `<img>` / MJPEG repaints | Hardware **WebCodecs** decode straight to a `desynchronized` `OffscreenCanvas` |
+| **Input latency** | Buffered shell commands or Nagle-delayed sockets | Direct HID (iOS) / `TCP_NODELAY` gRPC touch dispatch (Android) |
+| **Emulator overhead** | Duplicate host window + software rendering | Headless `-no-window -gpu host` (macOS Metal) |
+| **Switching devices** | Tear down & reconnect stream every switch | Persistent tab iframes & worker reuse (zero reconnect flicker) |
+
+### Low-Latency Streaming Pipeline
+
+```mermaid
+flowchart LR
+    subgraph iOS["iOS Simulator (macOS)"]
+        IOS_FB["Native Framebuffer"] --> SERVE_SIM["serve-sim (arm64 / x86_64)"]
+    end
+
+    subgraph Android["Android Emulator (-no-window -gpu host · Metal)"]
+        AND_MMAP["gRPC mmap Shared Memory"] --> X264["Host libx264 (zerolatency · 1 ms flush)"]
+        AND_SCRCPY["Fallback: scrcpy 60 fps"]
+    end
+
+    SERVE_SIM -->|"127.0.0.1"| DECODE["WebCodecs + desynchronized OffscreenCanvas"]
+    X264 -->|"127.0.0.1 (auto with ffmpeg)"| DECODE
+    AND_SCRCPY -->|"127.0.0.1 (zero extra tools)"| DECODE
+    DECODE --> PANEL["Antigravity Devices Pane (60 fps)"]
+```
+
+- **iOS — Native Framebuffer Capture:** Uses universal macOS native binaries (`serve-sim`, `arm64` & `x86_64`) to capture directly from the iOS Simulator framebuffer and inject HID touch/keyboard events with minimal CPU overhead.
+- **Android — Dual-Engine 60 fps Streaming (Built In):**
+  1. **Zero-Latency Shared Memory (`mmap`) + Host `libx264` *(automatic when `ffmpeg` is installed)*:** Reads raw frames straight from the Android Emulator’s `mmap` shared memory via its local authenticated gRPC endpoint, encodes H.264 on the host with zero input probing (`-probesize 32 -analyzeduration 0 -fflags nobuffer -flags low_delay`), `-preset ultrafast -tune zerolatency`, and a **1 ms** trailing Annex-B access-unit flush, dispatches touch input immediately over `TCP_NODELAY`, and renders directly to a `desynchronized` `OffscreenCanvas`—keeping video encoding completely off the emulator’s guest CPU.
+  2. **60 fps `scrcpy` + WebCodecs Fallback *(zero extra tools required)*:** When `ffmpeg` isn’t installed, seamlessly falls back to bundled `serve-emu` (`scrcpy` H.264 + `WebCodecs` decoding at up to **60 fps**), while booting stopped AVDs headless with `-no-window -gpu host` so Android renders on macOS Metal without a duplicate window.
 
 ---
 
@@ -41,17 +84,6 @@ When building or testing React Native, Expo, Flutter, Swift, or Kotlin apps with
   - **Android:** Bottom hardware dock (`Back`, `Home`, `Recents`, `Power`) + **Android tools** drawer, powered by a dual-engine 60 fps streamer.
 - **Feels Built Into Antigravity** — Synchronizes live with Antigravity Light & Dark Appearance themes, typography, full-stage `contain` scaling, and a clean resolution + live FPS telemetry bar.
 - **100% Local & Private** — Preview HTTP and WebSocket streams bind strictly to `127.0.0.1`. Screen contents and tokens are never logged or sent externally.
-
----
-
-## Performance Architecture
-
-Both platforms are tuned for high-FPS, low-latency interactive streaming inside Antigravity without needing any external hub app:
-
-- **iOS — Native Framebuffer Capture:** Uses universal macOS native binaries (`serve-sim`, `arm64` & `x86_64`) to capture directly from the iOS Simulator framebuffer and inject HID touch/keyboard events with minimal CPU overhead.
-- **Android — Dual-Engine 60 fps Low-Latency Streaming (Built In):**
-  1. **Zero-Latency Shared Memory (`mmap`) + `libx264` *(automatic when `ffmpeg` is installed)*:** Reads raw frames straight from the Android Emulator’s `mmap` shared memory via its local gRPC endpoint, encodes H.264 in ~1.5ms with `-preset ultrafast -tune zerolatency` (0-frame lookahead and 4ms access-unit flush), dispatches touch moves immediately over `TCP_NODELAY` gRPC, and draws decoded frames immediately to a `desynchronized` `OffscreenCanvas`—keeping video encoding completely off the emulator’s guest CPU without hardware encoder queue lag.
-  2. **60 fps `scrcpy` + WebCodecs Fallback *(zero extra tools required)*:** When `ffmpeg` isn’t installed, seamlessly falls back to bundled `serve-emu` (`scrcpy` H.264 + `WebCodecs` decoding at up to **60 fps**), while booting stopped AVDs with `-gpu host` so Android renders on macOS Metal.
 
 ---
 
@@ -84,6 +116,9 @@ curl -fsSL https://github.com/harysuryanto/antigravity-devices/releases/latest/d
 ```
 
 *(Or grab the `.tar.gz` / `.zip` archive manually from [GitHub Releases](https://github.com/harysuryanto/antigravity-devices/releases), extract it, and run `agy plugin install ./antigravity-devices`.)*
+
+> [!TIP]
+> **Unlock Maximum Android Speed:** Devices works out of the box at up to 60 fps via bundled `scrcpy` + `WebCodecs`. Install FFmpeg (`brew install ffmpeg`) to automatically enable the zero-latency `mmap` shared-memory + host `libx264` engine—zero configuration required.
 
 ### Prerequisites
 
