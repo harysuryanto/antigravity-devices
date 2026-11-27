@@ -27,6 +27,7 @@ jobs:
         run: |
           node --check scripts/server.mjs
           node --check scripts/devices.mjs
+          node --check scripts/ios-preview.mjs
           node --check scripts/android-preview.mjs
           node --check build/package.mjs
 
@@ -40,9 +41,11 @@ jobs:
             const required = [
               "dist/plugin/plugin.json",
               "dist/plugin/mcp_config.json",
+              "dist/plugin/assets/logo.svg",
               "dist/plugin/rules/AGENTS.md",
               "dist/plugin/scripts/server.mjs",
               "dist/plugin/scripts/devices.mjs",
+              "dist/plugin/scripts/ios-preview.mjs",
               "dist/plugin/scripts/android-preview.mjs",
               "dist/plugin/scripts/preview.html"
             ];

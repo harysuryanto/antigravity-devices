@@ -12,7 +12,7 @@ Mobile and cross-platform developers on macOS working inside the standalone Anti
 
 ## Product Purpose
 
-Devices (`ios-simulator`) is an Auxiliary Pane MCP App plugin that lets users discover local iOS simulators and Android emulators, boot stopped devices or open running ones, switch between multiple live device previews in persistent tabs, and drive touch, keyboard, and Android hardware/emulator controls without leaving the Antigravity conversation window.
+Devices (`antigravity-devices`) is an Auxiliary Pane MCP App plugin that lets users discover local iOS simulators and Android emulators, boot stopped devices or open running ones, switch between multiple live device previews in persistent tabs, and drive touch, keyboard, and Android hardware/emulator controls without leaving the Antigravity conversation window.
 
 ## Positioning
 
@@ -20,13 +20,13 @@ Native-feeling, zero-config local simulator and emulator streaming inside Antigr
 
 ## Operating Context
 
-- Launched from **+ → Plugins → Devices** (or via `open_simulator`) in an Antigravity conversation's Auxiliary Pane, where width varies from compact ~300px side splits to wide ~760px+ splits.
+- Launched from **+ → Plugins → Devices** (or via `open_devices`) in an Antigravity conversation's Auxiliary Pane, where width varies from compact ~300px side splits to wide ~760px+ splits.
 - Used in both Light and Dark Antigravity Appearance modes and across dynamic window zoom / font-size scales alongside dense chat and code views.
 - Operates on real Xcode `simctl` simulators and Android SDK AVDs/emulators where device lists routinely span 5–25 targets.
 
 ## Capabilities and Constraints
 
-- Preserve plugin ID `ios-simulator`, `open_simulator` `aux_pane` entrypoint, and app-only `list_devices` and `open_device` tools.
+- Preserve plugin ID `antigravity-devices`, `open_devices` `aux_pane` entrypoint, and app-only `list_devices` and `open_device` tools.
 - Start on the device picker with iOS simulators and Android emulators in separate groups; offer **Open** for running devices, **Connect** for starting devices, and **Start** for stopped devices.
 - Preserve open device tabs across list refreshes; **All devices** returns to the picker without closing tabs; closing a tab or restarting the MCP server leaves the underlying simulator or emulator running.
 - Keep both iOS and Android previews compact with primary device actions visible in a bottom dock (`Home`, `Rotate`, `Screenshot`, `Inspect` on iOS; `Back`, `Home`, `Recents`, `Power` on Android) and secondary controls grouped under **iOS tools** / **Inspector** and **Android tools**.
