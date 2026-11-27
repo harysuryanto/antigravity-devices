@@ -25,11 +25,13 @@ jobs:
 
       - name: Syntax check scripts
         run: |
+          sh -n bin/launch-server.sh
           node --check scripts/server.mjs
           node --check scripts/devices.mjs
           node --check scripts/ios-preview.mjs
           node --check scripts/android-preview.mjs
           node --check build/package.mjs
+          node --check build/release.mjs
 
       - name: Build plugin package
         run: bun run build
@@ -41,6 +43,9 @@ jobs:
             const required = [
               "dist/plugin/plugin.json",
               "dist/plugin/mcp_config.json",
+              "dist/plugin/README.md",
+              "dist/plugin/LICENSE",
+              "dist/plugin/bin/launch-server.sh",
               "dist/plugin/assets/logo.svg",
               "dist/plugin/rules/AGENTS.md",
               "dist/plugin/scripts/server.mjs",
@@ -54,7 +59,10 @@ jobs:
             }
             const plugin = JSON.parse(fs.readFileSync("dist/plugin/plugin.json", "utf8"));
             if (plugin.name !== "antigravity-devices") throw new Error("Unexpected plugin name: " + plugin.name);
-            JSON.parse(fs.readFileSync("dist/plugin/mcp_config.json", "utf8"));
+            const mcp = JSON.parse(fs.readFileSync("dist/plugin/mcp_config.json", "utf8"));
+            if (mcp.mcpServers?.preview?.command !== "/bin/sh") {
+              throw new Error("mcp_config.json must stay portable (expected /bin/sh)");
+            }
             console.log("Package layout verified for", plugin.name, plugin.version);
           '
 

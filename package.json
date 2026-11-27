@@ -4,6 +4,7 @@
   "scripts": {
     "build": "node build/package.mjs",
     "validate": "agy plugin validate --strict dist/plugin",
+    "package:release": "bun run build && node build/release.mjs",
     "install:local": "bun run build && bun run validate && agy plugin install dist/plugin"
   },
   "dependencies": {
