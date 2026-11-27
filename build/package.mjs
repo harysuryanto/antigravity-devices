@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, cpSync, mkdirSync, mkdtempSync, renameSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -21,13 +21,14 @@ try {
     join(serveEmu, "src/ui"), "--config", join(root, "build/vite.config.mjs")
   ], root);
 
+  cpSync(join(root, "bin"), join(stage, "bin"), { recursive: true });
+  chmodSync(join(stage, "bin/launch-server.sh"), 0o755);
   cpSync(join(root, "scripts"), join(stage, "scripts"), { recursive: true });
   cpSync(join(root, "rules"), join(stage, "rules"), { recursive: true });
   cpSync(join(root, "assets"), join(stage, "assets"), { recursive: true });
-  cpSync(join(root, "plugin.json"), join(stage, "plugin.json"));
-  const mcp = JSON.parse(readFileSync(join(root, "mcp_config.json"), "utf8"));
-  mcp.mcpServers.preview.command = process.execPath;
-  writeFileSync(join(stage, "mcp_config.json"), JSON.stringify(mcp, null, 2) + "\n");
+  for (const file of ["plugin.json", "mcp_config.json", "README.md", "LICENSE"]) {
+    cpSync(join(root, file), join(stage, file));
+  }
 
   const output = join(dist, "plugin");
   rmSync(output, { recursive: true, force: true });
