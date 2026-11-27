@@ -3,6 +3,17 @@
   "name": "antigravity-devices",
   "displayName": "Devices",
   "version": "0.5.0",
-  "description": "Choose a local iOS simulator or Android emulator and open it beside an Antigravity conversation.",
-  "logo": "assets/logo.svg"
+  "description": "Preview and interact with local iOS simulators and Android emulators beside an Antigravity conversation on macOS.",
+  "author": {
+    "name": "Hary Suryanto",
+    "url": "https://github.com/harysuryanto"
+  },
+  "homepage": "https://github.com/harysuryanto/antigravity-devices",
+  "repository": "https://github.com/harysuryanto/antigravity-devices",
+  "logo": "assets/logo.svg",
+  "suggestedPrompts": [
+    "Open the Devices panel to preview my running iOS simulator",
+    "Start an Android emulator and test my mobile app",
+    "List available iOS simulators and Android emulators"
+  ]
 }
