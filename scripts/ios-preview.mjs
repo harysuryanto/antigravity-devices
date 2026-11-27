@@ -152,10 +152,37 @@ export const AG_IOS_INJECTION = `
   ::-webkit-scrollbar-track { background: transparent; }
   ::selection { background: color-mix(in srgb, var(--ag-primary) 28%, transparent); }
 
-  /* Center stage between the 36px top utility bar and 36px bottom hardware dock */
+  /* Full-stage contain layout between the top utility bar and bottom hardware dock (matches Android) */
   #root > div.h-screen {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    box-sizing: border-box !important;
     background: var(--ag-bg) !important;
-    padding: 2.75rem 0.75rem !important;
+    padding-top: calc(var(--ag-topbar-h, 2.3125rem) + 0.625rem + 2px) !important;
+    padding-bottom: calc(var(--ag-dock-h, 2.5625rem) + 0.625rem + 2px) !important;
+    padding-left: calc(0.75rem + 2px) !important;
+    padding-right: calc(0.75rem + 2px) !important;
+    gap: 0 !important;
+    overflow: hidden !important;
+  }
+  #root > div.h-screen > div:has(> [data-device-chrome]) {
+    container-type: size !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    gap: 0 !important;
+    display: grid !important;
+    place-items: center !important;
+  }
+  #root [data-device-chrome] {
+    width: min(100cqw, calc(100cqh * var(--ag-device-ar, 0.460187))) !important;
+    height: min(100cqh, calc(100cqw / var(--ag-device-ar, 0.460187))) !important;
+    max-width: 100cqw !important;
+    max-height: 100cqh !important;
+    transition: none !important;
   }
   #root [data-device-chrome="off"] img,
   #root [data-device-chrome="off"] canvas {
@@ -165,6 +192,7 @@ export const AG_IOS_INJECTION = `
 
   /* Hide stock serve-sim floating chrome while keeping React controls mounted for delegation */
   [data-simulator-toolbar],
+  #root > div.h-screen > div > div:not([data-device-chrome]):has(> [data-simulator-toolbar]),
   div:has(> button[aria-label="Open devices sidebar"]),
   div:has(> button[aria-label="Open tools panel"]),
   aside.left-3,
@@ -584,6 +612,32 @@ export const AG_IOS_INJECTION = `
 
     document.body.append(topbar, dock);
 
+    const updateBarHeights = () => {
+      const topH = topbar.offsetHeight;
+      const dockH = dock.offsetHeight;
+      if (topH > 0) document.documentElement.style.setProperty("--ag-topbar-h", topH + "px");
+      if (dockH > 0) document.documentElement.style.setProperty("--ag-dock-h", dockH + "px");
+    };
+    updateBarHeights();
+    if (typeof ResizeObserver === "function") {
+      const barRo = new ResizeObserver(updateBarHeights);
+      barRo.observe(topbar);
+      barRo.observe(dock);
+    }
+
+    const parseAspectRatio = (raw) => {
+      if (!raw || raw === "auto") return null;
+      const parts = String(raw).split("/");
+      if (parts.length === 2) {
+        const w = Number(parts[0].trim());
+        const h = Number(parts[1].trim());
+        return w > 0 && h > 0 ? w / h : null;
+      }
+      const n = Number(String(raw).trim());
+      return Number.isFinite(n) && n > 0 ? n : null;
+    };
+    let lastDeviceAr = "";
+
     const q = (sel) => document.querySelector(sel);
     const delegate = (sel) => q(sel)?.click();
 
@@ -642,6 +696,18 @@ export const AG_IOS_INJECTION = `
     };
 
     const syncUi = () => {
+      const deviceEl = q("[data-device-chrome]");
+      if (deviceEl) {
+        const ar = parseAspectRatio(deviceEl.style.aspectRatio || getComputedStyle(deviceEl).aspectRatio);
+        if (ar) {
+          const nextAr = ar.toFixed(6);
+          if (nextAr !== lastDeviceAr) {
+            lastDeviceAr = nextAr;
+            document.documentElement.style.setProperty("--ag-device-ar", nextAr);
+          }
+        }
+      }
+
       const pill = q('[data-testid="stream-status-pill"]');
       const pillText = pill?.textContent?.trim() || "";
       const isLive = pillText === "live";
