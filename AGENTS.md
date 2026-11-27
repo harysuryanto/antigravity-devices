@@ -17,7 +17,7 @@ Make changes in this checkout. Treat `dist/plugin`, the installed copy at `~/.ge
 | `scripts/preview.html` | Device picker, tabs, active preview iframe, and the MCP App messaging bridge. |
 | `scripts/devices.mjs` | Device discovery through Xcode and the Android SDK, booting when requested, preview port allocation, worker reuse, and cleanup. iOS previews use the bundled `serve-sim` package. |
 | `scripts/ios-preview.mjs` | Compact Antigravity chrome and live theme wrapper around the bundled `serve-sim` iOS preview. |
-| `scripts/android-preview.mjs` | Accelerated Android streaming and input through the local T3 Code Expo Device Hub when available, with the bundled `serve-emu` streamer as a fallback. |
+| `scripts/android-preview.mjs` | Low-latency Android streaming and input via bundled `expo-device-hub` gRPC `mmap` capture + zero-latency `libx264` when `ffmpeg` is available, with 60 fps `serve-emu` (`scrcpy`) as a fallback. |
 | `patches/serve-emu-compact.patch` | Compact Android controls against the pinned `serve-emu` release. Update this patch against that release when changing the embedded Android UI. |
 | `build/package.mjs`, `build/release.mjs`, `build/vite.config.mjs` | Stage locked runtime dependencies, apply the Android patch, rebuild its UI, package the portable plugin (`dist/plugin`), and build release archives (`dist/release`). |
 

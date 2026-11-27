@@ -16,7 +16,7 @@ Devices (`antigravity-devices`) is an Auxiliary Pane MCP App plugin that lets us
 
 ## Positioning
 
-Native-feeling, zero-config local simulator and emulator streaming inside Antigravity's Auxiliary Pane over loopback (`127.0.0.1`), combining Paseo's `serve-sim` for iOS with accelerated T3 Hub gRPC capture and a bundled `serve-emu` fallback for Android under one unified picker and tab bar.
+Native-feeling, zero-config local simulator and emulator streaming inside Antigravity's Auxiliary Pane over loopback (`127.0.0.1`), combining Paseo's `serve-sim` for iOS with bundled `expo-device-hub` shared-memory gRPC + zero-latency `libx264` encoding and a 60 fps `serve-emu` (`scrcpy`) fallback for Android under one unified picker and tab bar.
 
 ## Operating Context
 

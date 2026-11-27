@@ -3,7 +3,7 @@
 
   # Devices for Antigravity
 
-  **Boot, stream, and control local iOS simulators and Android emulators right beside your Antigravity conversation.**
+  **Boot, stream, and control local iOS simulators and Android emulators at 60 fps right beside your Antigravity conversation.**
 
   [![CI](https://github.com/harysuryanto/antigravity-devices/actions/workflows/ci.yml/badge.svg)](https://github.com/harysuryanto/antigravity-devices/actions/workflows/ci.yml)
   [![Latest Release](https://img.shields.io/github/v/release/harysuryanto/antigravity-devices?include_prereleases&label=release)](https://github.com/harysuryanto/antigravity-devices/releases)
@@ -15,7 +15,7 @@
 
 <div align="center">
   <img src="docs/images/hero-demo.gif" alt="Full Antigravity window showing a demo conversation beside the Devices pane as it opens General on iPhone, switches to Pixel 6, and opens Display size and text on Android" width="100%" />
-  <p><em>Navigate iPhone Settings, switch to Pixel 6, and open Android display settings beside the same conversation.</em></p>
+  <p><em>Navigate iPhone Settings, switch to Pixel 6 instantly, and open Android display settings beside the same conversation.</em></p>
 </div>
 
 ---
@@ -27,7 +27,7 @@ When building or testing React Native, Expo, Flutter, Swift, or Kotlin apps with
 **Devices** (`antigravity-devices`) embeds your local simulators and emulators directly into Antigravity’s **Auxiliary Pane**:
 - **Watch your agent work in real time** as it taps, types, navigates, and dogfoods your mobile app.
 - **Jump in instantly** with mouse/touch input, keyboard typing, rotation, screenshots, and hardware keys—without leaving the conversation window.
-- **Zero cloud, zero latency overhead**—everything streams over local loopback (`127.0.0.1`) on your Mac.
+- **Native 60 fps loopback streaming**—hardware-accelerated capture and decoding over `127.0.0.1` with zero cloud overhead.
 
 ---
 
@@ -35,12 +35,23 @@ When building or testing React Native, Expo, Flutter, Swift, or Kotlin apps with
 
 - **iOS + Android in One Panel** — Discover all local Xcode iOS simulators and Android SDK AVDs in a single searchable picker. Boot stopped devices (`Start`) or attach to running ones (`Open`) in one click.
 - **Auto-Opens During Mobile Tasks** — Ships with a bundled agent rule (`rules/AGENTS.md`) so Antigravity automatically opens the Devices panel whenever you ask it to run, test, debug, or inspect a mobile app (pairs seamlessly with `agent-device`, `xcrun simctl`, and `adb`).
-- **Persistent Multi-Device Tabs** — Keep an iPhone and a Pixel open side-by-side in tabs and switch instantly. Returning to **All devices** or closing a tab never kills your underlying simulator or emulator.
+- **Instant Multi-Device Tabs** — Keep an iPhone and a Pixel live side-by-side in persistent tabs and switch with zero reconnect flicker. Returning to **All devices** or closing a tab never kills your underlying simulator or emulator.
 - **Compact Hardware & Dev Controls**
-  - **iOS:** Bottom dock (`Home`, `Rotate`, `Screenshot`, `Inspect`) + top-bar **WebKit Inspector** and **iOS tools** drawer, powered by universal `serve-sim`.
-  - **Android:** Bottom hardware dock (`Back`, `Home`, `Recents`, `Power`) + **Android tools** drawer, powered out of the box by `serve-emu` (with optional hardware-accelerated streaming via T3 Code’s Expo Device Hub + VideoToolbox).
-- **Feels Built Into Antigravity** — Synchronizes live with Antigravity Light & Dark Appearance themes, typography, and window zoom, with a clean resolution + live FPS telemetry bar.
+  - **iOS:** Bottom dock (`Home`, `Rotate`, `Screenshot`, `Bezel`, `Inspect`) + top-bar **WebKit Inspector** and **iOS tools** drawer, powered by universal `serve-sim`.
+  - **Android:** Bottom hardware dock (`Back`, `Home`, `Recents`, `Power`) + **Android tools** drawer, powered by a dual-engine 60 fps streamer.
+- **Feels Built Into Antigravity** — Synchronizes live with Antigravity Light & Dark Appearance themes, typography, full-stage `contain` scaling, and a clean resolution + live FPS telemetry bar.
 - **100% Local & Private** — Preview HTTP and WebSocket streams bind strictly to `127.0.0.1`. Screen contents and tokens are never logged or sent externally.
+
+---
+
+## Performance Architecture
+
+Both platforms are tuned for high-FPS, low-latency interactive streaming inside Antigravity without needing any external hub app:
+
+- **iOS — Native Framebuffer Capture:** Uses universal macOS native binaries (`serve-sim`, `arm64` & `x86_64`) to capture directly from the iOS Simulator framebuffer and inject HID touch/keyboard events with minimal CPU overhead.
+- **Android — Dual-Engine 60 fps Low-Latency Streaming (Built In):**
+  1. **Zero-Latency Shared Memory (`mmap`) + `libx264` *(automatic when `ffmpeg` is installed)*:** Reads raw frames straight from the Android Emulator’s `mmap` shared memory via its local gRPC endpoint, encodes H.264 in ~1.5ms with `-preset ultrafast -tune zerolatency` (0-frame lookahead and 4ms access-unit flush), dispatches touch moves immediately over `TCP_NODELAY` gRPC, and draws decoded frames immediately to a `desynchronized` `OffscreenCanvas`—keeping video encoding completely off the emulator’s guest CPU without hardware encoder queue lag.
+  2. **60 fps `scrcpy` + WebCodecs Fallback *(zero extra tools required)*:** When `ffmpeg` isn’t installed, seamlessly falls back to bundled `serve-emu` (`scrcpy` H.264 + `WebCodecs` decoding at up to **60 fps**), while booting stopped AVDs with `-gpu host` so Android renders on macOS Metal.
 
 ---
 
@@ -82,7 +93,8 @@ curl -fsSL https://github.com/harysuryanto/antigravity-devices/releases/latest/d
 | **Antigravity App** | Standalone macOS desktop app with the `agy` CLI enabled |
 | **Node.js 22+** | Auto-detected across `PATH`, Homebrew, `nvm`, `fnm`, `volta`, `asdf`, and `mise` |
 | **Xcode** *(for iOS)* | Xcode + at least one iOS Simulator runtime installed |
-| **Android SDK** *(for Android)* | `adb` (Platform-Tools), `emulator`, and at least one configured AVD |
+| **Android SDK + Bun** *(for Android)* | `adb` (Platform-Tools), `emulator`, at least one AVD, and [Bun](https://bun.sh/) (`~/.bun` or Homebrew) |
+| **FFmpeg** *(optional, Android)* | `brew install ffmpeg` enables zero-latency `mmap` gRPC capture + host `libx264` encoding |
 
 ---
 
@@ -93,14 +105,6 @@ curl -fsSL https://github.com/harysuryanto/antigravity-devices/releases/latest/d
    - *"Open the Devices panel to preview my running iOS simulator"*
    - *"Start an Android emulator and test the login flow of my app"*
    - *"List available iOS simulators and Android emulators"*
-
----
-
-## Optional: Accelerated Android Streaming
-
-Android streaming works **out of the box** with zero extra setup using the bundled `serve-emu` streamer.
-
-If you already run **T3 Code’s local Expo Device Hub (`0.19.1`)** with `ffmpeg` (VideoToolbox) and an authenticated emulator gRPC endpoint, `antigravity-devices` automatically detects it and upgrades Android sessions to low-latency hardware-accelerated streaming.
 
 ---
 
@@ -117,7 +121,7 @@ If you already run **T3 Code’s local Expo Device Hub (`0.19.1`)** with `ffmpeg
 
 ## Develop from Source
 
-Building from source requires [Bun](https://bun.sh/) in addition to Node.js 22+.
+Building from source requires [Bun](https://bun.sh/) and Node.js 22+.
 
 ```sh
 git clone https://github.com/harysuryanto/antigravity-devices.git
@@ -143,14 +147,14 @@ bun run package:release
 | `bin/launch-server.sh` | Portable Node.js 22+ resolver for macOS GUI-launched MCP sessions |
 | `rules/AGENTS.md` | Bundled rule instructing agents to auto-open Devices during mobile tasks |
 | `scripts/server.mjs` | Stdio MCP App server (`open_devices`, plus panel-only `list_devices` & `open_device`) |
-| `scripts/preview.html` | Unified picker, persistent tab bar, iframe preview stage, and live theme bridge |
-| `scripts/devices.mjs` | Simulator/AVD discovery, booting, loopback port allocation, and worker reuse |
-| `scripts/ios-preview.mjs` | Compact Antigravity chrome and live Appearance wrapper around `serve-sim` |
-| `scripts/android-preview.mjs` | Selects accelerated T3 Hub gRPC capture or bundled `serve-emu` fallback |
+| `scripts/preview.html` | Unified picker, persistent per-tab iframes, and live Appearance bridge |
+| `scripts/devices.mjs` | Simulator/AVD discovery, Metal `-gpu host` booting, port allocation, and worker reuse |
+| `scripts/ios-preview.mjs` | Compact Antigravity chrome, full-stage `contain` fit, and theme wrapper around `serve-sim` |
+| `scripts/android-preview.mjs` | Selects bundled gRPC `mmap` + zero-latency `libx264` encoding or 60 fps `serve-emu` fallback |
 | `patches/serve-emu-compact.patch` | Compact layout & theme patch applied to `serve-emu@0.1.0` during build |
 
 ---
 
 ## License
 
-[MIT](LICENSE) © Hary Suryanto. Bundles [`serve-sim`](https://www.npmjs.com/package/serve-sim) and [`serve-emu`](https://www.npmjs.com/package/serve-emu) (both licensed under Apache-2.0).
+[MIT](LICENSE) © Hary Suryanto. Bundles [`serve-sim`](https://www.npmjs.com/package/serve-sim), [`serve-emu`](https://www.npmjs.com/package/serve-emu), and the vendored Android gRPC streamer from [`expo-device-hub`](https://www.npmjs.com/package/expo-device-hub) (Apache-2.0 / MIT).
