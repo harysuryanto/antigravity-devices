@@ -52,7 +52,8 @@ jobs:
               "dist/plugin/scripts/devices.mjs",
               "dist/plugin/scripts/ios-preview.mjs",
               "dist/plugin/scripts/android-preview.mjs",
-              "dist/plugin/scripts/preview.html"
+              "dist/plugin/scripts/preview.html",
+              "dist/plugin/runtime-tools/accelerated-serve-emu/dist/server.js"
             ];
             for (const file of required) {
               if (!fs.existsSync(file)) throw new Error("Missing build artifact: " + file);

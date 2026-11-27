@@ -98,7 +98,7 @@ async function startAndroid(device) {
     if (ready.trim() === "1") return device.target;
     return waitForAndroid(device.name, device.target);
   }
-  const process = spawn(emulator, ["-avd", device.target, "-no-window"], {
+  const process = spawn(emulator, ["-avd", device.target, "-no-window", "-gpu", "host"], {
     detached: true, stdio: "ignore"
   });
   let failed = false;
@@ -159,7 +159,12 @@ async function stream(platform, target) {
   const available = await Promise.all(ports.map(isFree));
   const port = ports[available.indexOf(true)];
   if (!port) throw new Error("All local " + (ios ? "iOS" : "Android") + " preview ports are in use.");
-  const bun = join(home, ".bun/bin/bun");
+  const bun = [
+    process.env.BUN_INSTALL && join(process.env.BUN_INSTALL, "bin/bun"),
+    join(home, ".bun/bin/bun"),
+    "/opt/homebrew/bin/bun",
+    "/usr/local/bin/bun"
+  ].find((candidate) => candidate && existsSync(candidate));
   const iosPreview = fileURLToPath(new URL("./ios-preview.mjs", import.meta.url));
   const androidPreview = fileURLToPath(new URL("./android-preview.mjs", import.meta.url));
   const emuCli = fileURLToPath(new URL("../runtime-tools/node_modules/serve-emu/src/cli.ts", import.meta.url));
@@ -171,8 +176,8 @@ async function stream(platform, target) {
     PATH: join(sdk, "platform-tools") + ":" + (process.env.PATH || "/usr/bin:/bin")
   } : process.env;
   const worker = ios
-    ? spawn(process.execPath, [iosPreview, serveSim(), String(port), target], { stdio: "ignore" })
-    : spawn(bun, [androidPreview, String(port), target], { stdio: "ignore", env });
+    ? spawn(process.execPath, [iosPreview, serveSim(), String(port), target], { stdio: ["ignore", "ignore", "inherit"] })
+    : spawn(bun, [androidPreview, String(port), target], { stdio: ["ignore", "ignore", "inherit"], env });
   children.set(port, worker);
   let failed = false;
   worker.on("error", () => { failed = true; });
