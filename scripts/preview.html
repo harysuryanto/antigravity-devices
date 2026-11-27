@@ -368,12 +368,22 @@
   /* ------------------------------------------------------------------ */
   /* Picker                                                             */
   /* ------------------------------------------------------------------ */
+  .stage {
+    position: relative;
+    flex: 1 1 0%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
   .picker {
+    position: relative;
+    z-index: 2;
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
     width: 100%;
     padding: 0 1rem 1.75rem;
+    background: var(--ag-bg);
   }
   .picker-inner {
     width: 100%;
@@ -744,10 +754,14 @@
   /* Active Device Stream Stage                                         */
   /* ------------------------------------------------------------------ */
   .viewer {
-    position: relative;
-    flex: 1 1 0%;
-    min-height: 0;
+    position: absolute;
+    inset: 0;
+    z-index: 1;
     background: var(--ag-bg);
+  }
+  .viewer[data-inactive="true"] {
+    visibility: hidden;
+    pointer-events: none;
   }
   .viewer iframe {
     position: absolute;
@@ -757,6 +771,14 @@
     height: 100%;
     border: 0;
     background: var(--ag-bg);
+    visibility: hidden;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .viewer iframe[data-active="true"] {
+    visibility: visible;
+    pointer-events: auto;
+    z-index: 1;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -791,59 +813,59 @@
   <div id="tabs" class="tabs"></div>
 </nav>
 
-<main id="picker" class="picker">
-  <div class="picker-inner">
-    <header class="picker-header">
-      <div class="toolbar">
-        <div class="title-group">
-          <h1>Devices</h1>
-          <span id="loading" class="activity" role="status" aria-live="polite">
-            <span class="status-dot" data-state="starting" aria-hidden="true"></span>
-            <span id="loading-text">Finding local devices…</span>
-          </span>
+<div class="stage">
+  <main id="picker" class="picker">
+    <div class="picker-inner">
+      <header class="picker-header">
+        <div class="toolbar">
+          <div class="title-group">
+            <h1>Devices</h1>
+            <span id="loading" class="activity" role="status" aria-live="polite">
+              <span class="status-dot" data-state="starting" aria-hidden="true"></span>
+              <span id="loading-text">Finding local devices…</span>
+            </span>
+          </div>
+          <button id="refresh" class="ghost-btn" type="button" disabled aria-label="Refresh devices" title="Refresh devices">
+            <svg class="icon" viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M13.25 8a5.25 5.25 0 1 1-1.38-3.55M13.25 2.75v2.5h-2.5" />
+            </svg>
+            <span class="refresh-label">Refresh</span>
+          </button>
         </div>
-        <button id="refresh" class="ghost-btn" type="button" disabled aria-label="Refresh devices" title="Refresh devices">
+        <div id="search-wrap" class="search" hidden>
           <svg class="icon" viewBox="0 0 16 16" aria-hidden="true">
-            <path d="M13.25 8a5.25 5.25 0 1 1-1.38-3.55M13.25 2.75v2.5h-2.5" />
+            <circle cx="7.25" cy="7.25" r="4.5" />
+            <path d="m10.6 10.6 2.9 2.9" />
           </svg>
-          <span class="refresh-label">Refresh</span>
-        </button>
-      </div>
-      <div id="search-wrap" class="search" hidden>
-        <svg class="icon" viewBox="0 0 16 16" aria-hidden="true">
-          <circle cx="7.25" cy="7.25" r="4.5" />
-          <path d="m10.6 10.6 2.9 2.9" />
-        </svg>
-        <input id="filter" type="search" placeholder="Filter simulators and emulators…" aria-label="Filter devices" autocomplete="off" spellcheck="false">
-        <span id="search-kbd" class="search-kbd" aria-hidden="true">/</span>
-        <button id="clear-filter" class="search-clear" type="button" aria-label="Clear filter" hidden>
-          <svg class="icon" viewBox="0 0 16 16" aria-hidden="true">
-            <path d="m4.5 4.5 7 7m0-7-7 7" />
+          <input id="filter" type="search" placeholder="Filter simulators and emulators…" aria-label="Filter devices" autocomplete="off" spellcheck="false">
+          <span id="search-kbd" class="search-kbd" aria-hidden="true">/</span>
+          <button id="clear-filter" class="search-clear" type="button" aria-label="Clear filter" hidden>
+            <svg class="icon" viewBox="0 0 16 16" aria-hidden="true">
+              <path d="m4.5 4.5 7 7m0-7-7 7" />
+            </svg>
+          </button>
+        </div>
+      </header>
+      <div id="error-wrap" class="alert-wrap" hidden>
+        <div class="alert" role="alert">
+          <svg class="icon alert-icon" viewBox="0 0 16 16" aria-hidden="true">
+            <circle cx="8" cy="8" r="6" />
+            <path d="M8 5.25v3.25M8 10.75h.01" />
           </svg>
-        </button>
+          <p id="error" class="alert-text"></p>
+          <button id="dismiss-error" class="alert-dismiss" type="button" aria-label="Dismiss error">
+            <svg class="icon" viewBox="0 0 16 16" aria-hidden="true">
+              <path d="m4.5 4.5 7 7m0-7-7 7" />
+            </svg>
+          </button>
+        </div>
       </div>
-    </header>
-    <div id="error-wrap" class="alert-wrap" hidden>
-      <div class="alert" role="alert">
-        <svg class="icon alert-icon" viewBox="0 0 16 16" aria-hidden="true">
-          <circle cx="8" cy="8" r="6" />
-          <path d="M8 5.25v3.25M8 10.75h.01" />
-        </svg>
-        <p id="error" class="alert-text"></p>
-        <button id="dismiss-error" class="alert-dismiss" type="button" aria-label="Dismiss error">
-          <svg class="icon" viewBox="0 0 16 16" aria-hidden="true">
-            <path d="m4.5 4.5 7 7m0-7-7 7" />
-          </svg>
-        </button>
-      </div>
+      <div id="groups"></div>
     </div>
-    <div id="groups"></div>
-  </div>
-</main>
+  </main>
 
-<section id="viewer" class="viewer" aria-label="Device preview" hidden>
-  <iframe id="stream" title="Device preview"></iframe>
-</section>
+  <section id="viewer" class="viewer" aria-label="Device preview" data-inactive="true" aria-hidden="true"></section>
+</div>
 
 <script>
   const picker = document.querySelector("#picker");
@@ -854,7 +876,7 @@
   const views = document.querySelector("#views");
   const tabs = document.querySelector("#tabs");
   const openDevices = new Map();
-  const frame = document.querySelector("#stream");
+  const frames = new Map();
   const loading = document.querySelector("#loading");
   const loadingText = document.querySelector("#loading-text");
   const groups = document.querySelector("#groups");
@@ -887,23 +909,77 @@
   let listing;
   let busy = "";
   let activeDevice = "";
-  let activeOrigin = "";
   let filterQuery = "";
   let hostPinnedTheme = "";
   let currentTheme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   const currentVariables = {};
 
-  function syncStreamTheme() {
-    if (!activeOrigin || viewer.hidden || !frame.contentWindow) return;
+  function postThemeToFrame(entry) {
+    if (!entry?.origin || !entry.iframe.contentWindow) return;
     try {
-      frame.contentWindow.postMessage({
+      entry.iframe.contentWindow.postMessage({
         type: "ag-theme",
         theme: currentTheme,
         variables: currentVariables
-      }, activeOrigin);
+      }, entry.origin);
     } catch {
       // Ignore cross-frame timing errors before stream page mounts.
     }
+  }
+
+  function syncStreamTheme() {
+    for (const entry of frames.values()) {
+      postThemeToFrame(entry);
+    }
+  }
+
+  function updateViewerVisibility() {
+    const hasActive = Boolean(activeDevice) && frames.has(activeDevice);
+    viewer.dataset.inactive = String(!hasActive);
+    if (hasActive) viewer.removeAttribute("aria-hidden");
+    else viewer.setAttribute("aria-hidden", "true");
+    for (const [id, entry] of frames) {
+      const isActive = hasActive && id === activeDevice;
+      if (!isActive && document.activeElement === entry.iframe) entry.iframe.blur();
+      entry.iframe.dataset.active = String(isActive);
+      entry.iframe.inert = !isActive;
+      entry.iframe.tabIndex = isActive ? 0 : -1;
+    }
+  }
+
+  function ensureFrame(device, url) {
+    let entry = frames.get(device.id);
+    if (entry && entry.origin === url.origin) {
+      entry.iframe.title = device.name + " live preview";
+      return entry;
+    }
+    if (entry) {
+      entry.iframe.src = "about:blank";
+      entry.iframe.remove();
+      frames.delete(device.id);
+    }
+    const iframe = document.createElement("iframe");
+    iframe.title = device.name + " live preview";
+    iframe.dataset.device = device.id;
+    iframe.dataset.active = "false";
+    iframe.inert = true;
+    iframe.tabIndex = -1;
+    entry = { iframe, origin: url.origin };
+    iframe.addEventListener("load", () => postThemeToFrame(entry));
+    url.searchParams.set("layout", "compact");
+    url.searchParams.set("theme", currentTheme);
+    iframe.src = url.href;
+    viewer.append(iframe);
+    frames.set(device.id, entry);
+    return entry;
+  }
+
+  function destroyFrame(id) {
+    const entry = frames.get(id);
+    if (!entry) return;
+    frames.delete(id);
+    entry.iframe.src = "about:blank";
+    entry.iframe.remove();
   }
 
   function applyHostContext(ctx) {
@@ -939,10 +1015,6 @@
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (event) => {
     if (hostPinnedTheme) return;
     currentTheme = event.matches ? "dark" : "light";
-    syncStreamTheme();
-  });
-
-  frame.addEventListener("load", () => {
     syncStreamTheme();
   });
 
@@ -1102,7 +1174,7 @@
       show.append(dot, label);
 
       show.addEventListener("click", () => {
-        if (activeDevice !== device.id) void select(device, true);
+        if (activeDevice !== device.id) activateTab(device);
       });
       if (focusId === device.id) focus = show;
 
@@ -1115,9 +1187,11 @@
       close.innerHTML = ICONS.close;
       close.addEventListener("click", () => {
         openDevices.delete(device.id);
+        destroyFrame(device.id);
         if (activeDevice === device.id) {
           showPicker(device.id);
         } else {
+          updateViewerVisibility();
           drawTabs(activeDevice);
           draw();
           if (!activeDevice) (views.hidden ? refresh : back).focus();
@@ -1244,15 +1318,32 @@
 
   function showPicker(focusId) {
     activeDevice = "";
-    activeOrigin = "";
-    frame.removeAttribute("src");
-    viewer.hidden = true;
     picker.hidden = false;
+    updateViewerVisibility();
     void reload(focusId);
+  }
+
+  function activateTab(device) {
+    if (busy) return;
+    if (!frames.has(device.id)) {
+      void select(device, true);
+      return;
+    }
+    showError("");
+    activeDevice = device.id;
+    picker.hidden = true;
+    updateViewerVisibility();
+    syncStreamTheme();
+    draw();
+    drawTabs(device.id);
   }
 
   async function select(device, fromTab = false) {
     if (busy) return;
+    if (!fromTab && device.state === "running" && openDevices.has(device.id) && frames.has(device.id)) {
+      activateTab(device);
+      return;
+    }
     const status = device.state === "stopped" ? "Starting " : "Opening ";
     loadingText.textContent = status + device.name + "…";
     busy = device.id;
@@ -1266,22 +1357,17 @@
         throw new Error("The preview didn’t return a local URL.");
       }
       const opened = { ...data.device, state: "running" };
-      activeDevice = opened.id;
-      activeOrigin = url.origin;
       openDevices.set(opened.id, opened);
-      frame.title = opened.name + " live preview";
-      url.searchParams.set("layout", "compact");
-      url.searchParams.set("theme", currentTheme);
-      frame.src = url.href;
+      ensureFrame(opened, url);
+      activeDevice = opened.id;
       picker.hidden = true;
-      viewer.hidden = false;
+      updateViewerVisibility();
+      syncStreamTheme();
     } catch (error) {
       if (fromTab) {
         activeDevice = "";
-        activeOrigin = "";
-        frame.removeAttribute("src");
-        viewer.hidden = true;
         picker.hidden = false;
+        updateViewerVisibility();
       }
       showError(error.message);
     } finally {

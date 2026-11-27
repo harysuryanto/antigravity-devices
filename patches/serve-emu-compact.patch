@@ -304,7 +304,7 @@
    );
 --- a/src/ui/styles.css
 +++ b/src/ui/styles.css
-@@ -821,3 +821,662 @@
+@@ -821,3 +821,660 @@
      max-height: 60vh;
    }
  }
@@ -677,10 +677,8 @@
 +  background: #000;
 +}
 +#root:has(.compact-layout) .compact-stage .device:not([data-has-size]) {
-+  aspect-ratio: 9 / 19.5;
-+  height: min(calc(100cqh - 8px), 32rem);
-+  width: auto;
-+  max-width: calc(100cqw - 8px);
++  width: min(calc(100cqw - 4px), calc((100cqh - 4px) * 9 / 20));
++  height: min(calc(100cqh - 4px), calc((100cqw - 4px) * 20 / 9));
 +  background: color-mix(in srgb, var(--ag-fg) 3.5%, var(--ag-card));
 +  box-shadow: none;
 +  display: grid;
