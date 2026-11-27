@@ -13,10 +13,9 @@
 
 <br />
 
-<!-- TODO: Replace with a 10–15s recording showing an Antigravity chat on the left driving an app while the live iOS/Android preview updates in the right Auxiliary Pane -->
 <div align="center">
-  <img src="docs/images/hero-demo.gif" alt="[Placeholder] Live iOS Simulator and Android Emulator streaming inside the Antigravity side panel" width="100%" />
-  <p><em>Placeholder: <code>docs/images/hero-demo.gif</code> — Agent conversation on the left, live interactive simulator streaming in the Devices side pane on the right.</em></p>
+  <img src="docs/images/hero-demo.gif" alt="Full Antigravity window showing a demo conversation beside the Devices pane as it opens General on iPhone, switches to Pixel 6, and opens Display size and text on Android" width="100%" />
+  <p><em>Navigate iPhone Settings, switch to Pixel 6, and open Android display settings beside the same conversation.</em></p>
 </div>
 
 ---
@@ -47,11 +46,17 @@ When building or testing React Native, Expo, Flutter, Swift, or Kotlin apps with
 
 ## Screenshots
 
-<!-- TODO: Replace placeholders below with actual screenshots (recommended width: 1400px–1600px PNG/WebP) -->
-| Unified Device Picker | Multi-Device Tabs (Light & Dark) |
-| --- | --- |
-| ![Placeholder: Device Picker](docs/images/device-picker.png) | ![Placeholder: Live Preview & Controls](docs/images/live-preview-tabs.png) |
-| *Placeholder: `docs/images/device-picker.png` — Grouped iOS & Android inventory with instant search and status dots.* | *Placeholder: `docs/images/live-preview-tabs.png` — Persistent tabs, live FPS bar, and compact hardware dock in Light/Dark mode.* |
+![Full Antigravity window with the demo conversation and Devices picker showing iOS simulators and Android emulators](docs/images/device-picker.png)
+
+*The picker groups devices by platform and shows which are running or ready to start.*
+
+![Full Antigravity window in Light appearance with iPhone Settings live, iPhone and Pixel tabs, and iOS controls](docs/images/live-preview-tabs.png)
+
+*iPhone Settings is active in Light appearance, with Pixel 6 ready in the next tab.*
+
+![Full Antigravity window in Dark appearance with Android display settings live, iPhone and Pixel tabs, and Android hardware controls](docs/images/live-preview-tabs-dark.png)
+
+*Pixel 6 is active in Dark appearance, with Android hardware controls below the preview.*
 
 ---
 

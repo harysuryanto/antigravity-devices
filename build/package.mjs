@@ -26,6 +26,7 @@ try {
   cpSync(join(root, "scripts"), join(stage, "scripts"), { recursive: true });
   cpSync(join(root, "rules"), join(stage, "rules"), { recursive: true });
   cpSync(join(root, "assets"), join(stage, "assets"), { recursive: true });
+  cpSync(join(root, "docs", "images"), join(stage, "docs", "images"), { recursive: true });
   for (const file of ["plugin.json", "mcp_config.json", "README.md", "LICENSE"]) {
     cpSync(join(root, file), join(stage, file));
   }
