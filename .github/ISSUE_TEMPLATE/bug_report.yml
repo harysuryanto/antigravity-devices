@@ -1,0 +1,66 @@
+name: Bug Report
+description: Report a bug or issue with Devices for Antigravity
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting an issue! Please check the Troubleshooting section in the README first and fill out the details below so we can reproduce it quickly.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: A clear description of the bug and what you expected to happen.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: How can we reproduce this issue?
+      placeholder: |
+        1. Open Devices from + -> Plugins -> Devices
+        2. Click Open / Start on ...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Affected Platform
+      options:
+        - iOS Simulator
+        - Android Emulator (accelerated mmap + ffmpeg)
+        - Android Emulator (scrcpy fallback)
+        - Device Picker / Tabs / MCP Server
+        - Installation / Packaging
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Fill in your local versions where applicable.
+      value: |
+        - **Plugin version:** 0.5.0
+        - **macOS version & chip:** (e.g. macOS 15.x, Apple Silicon / Intel)
+        - **Node.js version:** (`node -v`)
+        - **Bun version:** (`bun -v`)
+        - **Xcode / Simulator version (if iOS):**
+        - **Android Emulator / adb version (if Android):**
+        - **FFmpeg installed (`which ffmpeg`):** Yes / No
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Paste any relevant stderr logs or attach screenshots. Please redact any personal paths or sensitive information.
+    validations:
+      required: false

@@ -1,0 +1,42 @@
+name: Feature Request
+description: Suggest an improvement or new capability for Devices for Antigravity
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What workflow or pain point are you trying to solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe how you'd like this to work in the Devices panel.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Area
+      options:
+        - iOS Simulator
+        - Android Emulator
+        - Device Picker & Tabs
+        - MCP Tools / Agent Integration
+        - Performance & Streaming
+        - Other
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add any screenshots, mockups, or references.
+    validations:
+      required: false
